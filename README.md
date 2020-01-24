@@ -34,7 +34,7 @@ For convenience, the build and configuration guides can be accessed from the fol
 
 Zeek Agent supersedes an [earlier osquery
 extension](https://github.com/zeek/zeek-osquery) for Zeek that focused
-on providingn osquery's tables to Zeek. Zeek Agent provides all the
+on providing osquery's tables to Zeek. Zeek Agent provides all the
 same functionality, but can operate independent from osquery as well.
 We plan to further extend the events/tables that the agent provides
 natively.
