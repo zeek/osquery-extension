@@ -1,0 +1,146 @@
+name: PackageGenerator
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  linux_packaging:
+    needs: linux_build
+    runs-on: ubuntu-18.04
+
+    steps:
+      - name: Download the DEB package from the linux_build job (Release, Zeek 3.0)
+        uses: actions/download-artifact@v1
+        with:
+          name: deb_package-Release-3.0
+
+      - name: Download the RPM package from the linux_build job (Release, Zeek 3.0)
+        uses: actions/download-artifact@v1
+        with:
+          name: rpm_package-Release-3.0
+
+      - name: Download the TARGZ package from the linux_build job (Release, Zeek 3.0)
+        uses: actions/download-artifact@v1
+        with:
+          name: targz_package-Release-3.0
+
+      - name: Download the DEB package from the linux_build job (Release, Zeek 3.1)
+        uses: actions/download-artifact@v1
+        with:
+          name: deb_package-Release-3.1
+
+      - name: Download the RPM package from the linux_build job (Release, Zeek 3.1)
+        uses: actions/download-artifact@v1
+        with:
+          name: rpm_package-Release-3.1
+
+      - name: Download the TARGZ package from the linux_build job (Release, Zeek 3.1)
+        uses: actions/download-artifact@v1
+        with:
+          name: targz_package-Release-3.1
+
+      - name: DEBUG
+        run: find .
+
+      - name: Locate the Zeek 3.0 packages
+        id: zeek30_package_locations
+        run: |
+          echo ::set-output name=DEB_PACKAGE_PATH::$(ls deb_package-Release-3.0/package/*.deb)
+          echo ::set-output name=DEB_ASSET_NAME::zeek30_$(cd deb_package-Release-3.0/package && ls *.deb)
+
+          echo ::set-output name=RPM_PACKAGE_PATH::$(ls deb_package-Release-3.0/package/*.rpm)
+          echo ::set-output name=RPM_ASSET_NAME::zeek30_$(cd deb_package-Release-3.0/package && ls *.rpm)
+
+          echo ::set-output name=TARGZ_PACKAGE_PATH::$(ls deb_package-Release-3.0/package/*.tar.gz)
+          echo ::set-output name=TARGZ_ASSET_NAME::zeek30_$(cd deb_package-Release-3.0/package && ls *.tar.gz)
+
+      - name: Locate the Zeek 3.1 packages
+        id: zeek31_package_locations
+        run: |
+          echo ::set-output name=DEB_PACKAGE_PATH::$(ls rpm_package-Release-3.1/package/*.deb)
+          echo ::set-output name=DEB_ASSET_NAME::zeek31_$(cd rpm_package-Release-3.1/package && ls *.deb)
+
+          echo ::set-output name=RPM_PACKAGE_PATH::$(ls rpm_package-Release-3.1/package/*.rpm)
+          echo ::set-output name=RPM_ASSET_NAME::zeek31_$(cd rpm_package-Release-3.1/package && ls *.rpm)
+
+          echo ::set-output name=TARGZ_PACKAGE_PATH::$(ls rpm_package-Release-3.1/package/*.tar.gz)
+          echo ::set-output name=TARGZ_ASSET_NAME::zeek31_$(cd rpm_package-Release-3.1/package && ls *.tar.gz)
+
+      - name: Draft the new release
+        id: create_release
+        uses: actions/create-release@v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Version ${{ github.ref }}
+          draft: true
+          prerelease: false
+
+      - name: Upload the Zeek 3.0 .deb package
+        id: upload_deb_package
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.zeek30_package_locations.outputs.DEB_PACKAGE_PATH }}
+          asset_name: ${{ steps.zeek30_package_locations.outputs.DEB_ASSET_NAME }}
+          asset_content_type: application/vnd.debian.binary-package
+
+      - name: Upload the Zeek 3.0 .rpm package
+        id: upload_rpm_package
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.zeek30_package_locations.outputs.RPM_PACKAGE_PATH }}
+          asset_name: ${{ steps.zeek30_package_locations.outputs.RPM_ASSET_NAME }}
+          asset_content_type: application/x-rpm
+
+      - name: Upload the Zeek 3.0 .tar.gz package
+        id: upload_targz_package
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.zeek30_package_locations.outputs.TARGZ_PACKAGE_PATH }}
+          asset_name: ${{ steps.zeek30_package_locations.outputs.TARGZ_ASSET_NAME }}
+          asset_content_type: application/gzip
+
+      - name: Upload the Zeek 3.1 .deb package
+        id: upload_deb_package
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.zeek31_package_locations.outputs.DEB_PACKAGE_PATH }}
+          asset_name: ${{ steps.zeek31_package_locations.outputs.DEB_ASSET_NAME }}
+          asset_content_type: application/vnd.debian.binary-package
+
+      - name: Upload the Zeek 3.1 .rpm package
+        id: upload_rpm_package
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.zeek31_package_locations.outputs.RPM_PACKAGE_PATH }}
+          asset_name: ${{ steps.zeek31_package_locations.outputs.RPM_ASSET_NAME }}
+          asset_content_type: application/x-rpm
+
+      - name: Upload the Zeek 3.1 .tar.gz package
+        id: upload_targz_package
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.zeek31_package_locations.outputs.TARGZ_PACKAGE_PATH }}
+          asset_name: ${{ steps.zeek31_package_locations.outputs.TARGZ_ASSET_NAME }}
+          asset_content_type: application/gzip

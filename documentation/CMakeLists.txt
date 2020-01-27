@@ -9,10 +9,8 @@ function(zeekAgentDocumentation)
 
   find_program(doxygen_executable_path doxygen)
   if("${doxygen_executable_path}" STREQUAL "doxygen_executable_path-NOTFOUND")
-    message(FATAL_ERROR "The Doxygen command was not found")
+    message(FATAL_ERROR "zeek-agent: The Doxygen command was not found")
   endif()
-
-  set(ZEEK_AGENT_DOCUMENTATION_BUILD_PATH "${CMAKE_CURRENT_BINARY_DIR}/docs")
 
   # We may be located inside the osquery source tree; use a relative path
   # for the INPUT field
@@ -30,9 +28,13 @@ function(zeekAgentDocumentation)
 
   add_custom_target(doxygen
     COMMAND doxygen "${CMAKE_CURRENT_BINARY_DIR}/doxygen.conf"
-    COMMENT "Generating Doxygen documentation..."
+    COMMENT "zeek-agent: Generating Doxygen documentation..."
     VERBATIM
   )
+
+  if(ZEEK_AGENT_ENABLE_INSTALL)
+    install(SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/install.cmake")
+  endif()
 endfunction()
 
 zeekAgentDocumentation()
