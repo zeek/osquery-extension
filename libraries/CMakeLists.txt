@@ -6,9 +6,14 @@ function(zeekAgentLibraries)
     -Wno-error
   )
 
+  if("${ZEEK_AGENT_ZEEK_COMPATIBILITY}" STREQUAL "3.0")
+    add_subdirectory("broker-legacy")
+  else()
+    add_subdirectory("broker")
+  endif()
+
   add_subdirectory("catch2")
   add_subdirectory("audit")
-  add_subdirectory("broker")
   add_subdirectory("xxhash")
 
   # If we are being built under osquery, then we may already have

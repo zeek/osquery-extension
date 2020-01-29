@@ -19,3 +19,6 @@
 [submodule "libraries/zlib/src"]
 	path = libraries/zlib/src
 	url = https://github.com/madler/zlib
+[submodule "libraries/broker-legacy/src"]
+	path = libraries/broker-legacy/src
+	url = https://github.com/zeek/broker
