@@ -154,6 +154,9 @@ jobs:
         echo ::set-output name=RPM_PACKAGE_PATH::$(ls package/*.rpm)
         echo ::set-output name=TARGZ_PACKAGE_PATH::$(ls package/*.tar.gz)
 
+    - name: Check the package contents
+      run: ./scripts/check_linux_package.sh "${{ steps.package_locations.outputs.TARGZ_PACKAGE_PATH }}"
+
     - name: Store the .deb package artifact
       uses: actions/upload-artifact@v1
       with:
