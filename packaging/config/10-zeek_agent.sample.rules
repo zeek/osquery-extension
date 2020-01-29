@@ -1,0 +1,17 @@
+#
+# Make sure to check the current Audit configuration so that
+# there are no duplicated rules.
+#
+# This file can be copied to /etc/audit/rules.d/10-zeek_agent.rules
+#
+
+# Audit rules for handling process events
+-a exit,always -F arch=b64 -S execve
+-a exit,always -F arch=b64 -S execveat
+-a exit,always -F arch=b64 -S fork
+-a exit,always -F arch=b64 -S vfork
+-a exit,always -F arch=b64 -S clone
+
+# Audit rules for socket events
+-a exit,always -F arch=b64 -S connect
+-a exit,always -F arch=b64 -S bind

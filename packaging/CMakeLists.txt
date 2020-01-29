@@ -18,6 +18,7 @@ set(CPACK_PACKAGE_CONTACT "lt@zeek.org")
 set(CPACK_PACKAGE_HOMEPAGE_URL "https://zeek.org")
 set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${ZEEK_AGENT_VERSION}-${PACKAGE_VERSION}.x86_64")
 set(CPACK_PACKAGE_RELOCATABLE ON)
+set(CPACK_SET_DESTDIR ON)
 
 set(CPACK_DEBIAN_PACKAGE_RELEASE "${PACKAGE_VERSION}")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "extra")
@@ -69,6 +70,13 @@ function(zeekAgentPackaging)
                 WORLD_READ             WORLD_EXECUTE
 
     DESTINATION "bin"
+  )
+
+  install(
+    FILES "config/config.sample.json"
+          "config/10-zeek_agent.sample.rules"
+
+    DESTINATION "/etc/zeek-agent"
   )
 endfunction()
 
