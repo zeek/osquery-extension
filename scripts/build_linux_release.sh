@@ -32,7 +32,7 @@ main() {
 
   if [ ! -d "package" ] ; then
     executeCommand \
-      "Creating the package folder" \
+      "Creating the package build folder" \
       . \
       mkdir "package"
   fi
@@ -180,15 +180,15 @@ main() {
 
   executeCommand \
     "Configuring the packaging project" \
-    "package_build" \
+    "package" \
     cmake -G Ninja -DZEEK_AGENT_ZEEK_COMPATIBILITY:STRING="${zeek_version}" -DZEEK_AGENT_INSTALL_PATH:PATH="${install_destination}" -DCMAKE_INSTALL_PREFIX:PATH="${install_prefix}" ../packaging
 
   executeCommand \
     "Generating packages" \
-    "package_build" \
+    "package" \
     cmake --build . --target package -- -v
 
-  printf "\n\nDone! Packages are located in the 'package_build' folder\n"
+  printf "\n\nDone! Packages are located in the 'package' folder\n"
   return 0
 }
 
