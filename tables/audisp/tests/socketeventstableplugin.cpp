@@ -1,4 +1,4 @@
-#include "tables/audisp/socketeventstableplugin.h"
+#include "socketeventstableplugin.h"
 #include "utils.h"
 
 #include <catch2/catch.hpp>

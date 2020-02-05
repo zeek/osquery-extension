@@ -90,9 +90,6 @@ function(zeekAgent)
     SOURCES
       tests/main.cpp
 
-      tests/utils.h
-      tests/utils.cpp
-
       tests/zeekconnection.cpp
   )
 endfunction()

@@ -1,4 +1,4 @@
-#include "tables/audisp/processeventstableplugin.h"
+#include "processeventstableplugin.h"
 #include "utils.h"
 
 #include <catch2/catch.hpp>
