@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.16.3)
 
 function(generateSettingsTarget)
   if("${CMAKE_BUILD_TYPE}" STREQUAL "")
@@ -6,7 +6,6 @@ function(generateSettingsTarget)
   endif()
 
   add_library(zeek_agent_common_settings INTERFACE)
-
   set(common_compilation_flags
     ${ZEEK_AGENT_COMMON_COMPILATION_FLAGS}
   )
@@ -28,6 +27,25 @@ function(generateSettingsTarget)
   target_compile_definitions(zeek_agent_common_settings INTERFACE
     ZEEK_AGENT_VERSION="${ZEEK_AGENT_VERSION}"
   )
+
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    target_compile_definitions(zeek_agent_common_settings INTERFACE
+      ZEEK_AGENT_PLATFORM_LINUX
+    )
+
+  elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+    target_compile_definitions(zeek_agent_common_settings INTERFACE
+      ZEEK_AGENT_PLATFORM_MACOS
+    )
+
+  elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    target_compile_definitions(zeek_agent_common_settings INTERFACE
+      ZEEK_AGENT_PLATFORM_WINDOWS
+    )
+
+  else()
+    message(FATAL_ERROR "zeek-agent: Unsupported platform")
+  endif()
 
   add_library(zeek_agent_c_settings INTERFACE)
   target_link_libraries(zeek_agent_c_settings INTERFACE zeek_agent_common_settings)

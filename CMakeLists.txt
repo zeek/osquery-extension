@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.16.3)
 
 include("cmake/options.cmake")
 project("zeek-agent")
@@ -15,6 +15,7 @@ function(zeekAgent)
 
   add_subdirectory("libraries")
   add_subdirectory("components")
+  add_subdirectory("tables")
 
   set(target_name_list
     "zeek-agent"
@@ -45,24 +46,16 @@ function(zeekAgent)
 
       src/queryscheduler.h
       src/queryscheduler.cpp
-
-      src/tables/audisp/audispservice.h
-      src/tables/audisp/audispservice.cpp
-
-      src/tables/audisp/processeventstableplugin.h
-      src/tables/audisp/processeventstableplugin.cpp
-
-      src/tables/audisp/socketeventstableplugin.h
-      src/tables/audisp/socketeventstableplugin.cpp
     )
 
     target_link_libraries("${target_name}" PRIVATE
       zeek_agent_cxx_settings
-      zeek_audisp
-      zeek_database
       zeek_logger
       zeek_service_manager
+      zeek_database
       zeek_configuration
+      zeek_tables
+
       thirdparty_broker
       thirdparty_xxhash
     )
@@ -100,8 +93,6 @@ function(zeekAgent)
       tests/utils.h
       tests/utils.cpp
 
-      tests/processeventstableplugin.cpp
-      tests/socketeventstableplugin.cpp
       tests/zeekconnection.cpp
   )
 endfunction()

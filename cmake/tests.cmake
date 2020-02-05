@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.16.3)
 
 function(generateRootZeekTestTarget)
   if(NOT ZEEK_AGENT_ENABLE_TESTS)

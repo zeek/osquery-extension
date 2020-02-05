@@ -1,12 +1,11 @@
-#include "logger.h"
-
-#include "tables/audisp/audispservice.h"
-#include "tables/audisp/processeventstableplugin.h"
-#include "tables/audisp/socketeventstableplugin.h"
+#include "audispservice.h"
+#include "processeventstableplugin.h"
+#include "socketeventstableplugin.h"
 
 #include <algorithm>
 #include <cassert>
 
+#include <zeek/audispservicefactory.h>
 #include <zeek/iaudispconsumer.h>
 
 namespace zeek {
@@ -16,10 +15,15 @@ const std::string kServiceName{"audisp"};
 } // namespace
 
 struct AudispService::PrivateData final {
-  PrivateData(IVirtualDatabase &virtual_database_)
-      : virtual_database(virtual_database_) {}
+  PrivateData(IVirtualDatabase &virtual_database_,
+              IZeekConfiguration &configuration_, IZeekLogger &logger_)
+      : virtual_database(virtual_database_), configuration(configuration_),
+        logger(logger_) {}
 
   IVirtualDatabase &virtual_database;
+  IZeekConfiguration &configuration;
+  IZeekLogger &logger;
+
   zeek::IAudispConsumer::Ref audisp_consumer;
 
   IVirtualTable::Ref process_events_table;
@@ -33,7 +37,6 @@ AudispService::~AudispService() {
   assert(status.succeeded() && "Failed to unregister the process_events table");
 
   status = d->virtual_database.unregisterTable(d->socket_events_table->name());
-
   assert(status.succeeded() && "Failed to unregister the socket_events table");
 }
 
@@ -61,7 +64,7 @@ Status AudispService::exec(std::atomic_bool &terminate) {
 
     status = process_events_table_impl.processEvents(event_list);
     if (!status.succeeded()) {
-      getLogger().logMessage(
+      d->logger.logMessage(
           IZeekLogger::Severity::Error,
           "The process_events table failed to process some events: " +
               status.message());
@@ -69,7 +72,7 @@ Status AudispService::exec(std::atomic_bool &terminate) {
 
     status = socket_events_table_impl.processEvents(event_list);
     if (!status.succeeded()) {
-      getLogger().logMessage(
+      d->logger.logMessage(
           IZeekLogger::Severity::Error,
           "The socket_events table failed to process some events: " +
               status.message());
@@ -79,8 +82,10 @@ Status AudispService::exec(std::atomic_bool &terminate) {
   return Status::success();
 }
 
-AudispService::AudispService(IVirtualDatabase &virtual_database)
-    : d(new PrivateData(virtual_database)) {
+AudispService::AudispService(IVirtualDatabase &virtual_database,
+                             IZeekConfiguration &configuration,
+                             IZeekLogger &logger)
+    : d(new PrivateData(virtual_database, configuration, logger)) {
 
   auto status =
       zeek::IAudispConsumer::create(d->audisp_consumer, kAudispSocketPath);
@@ -89,12 +94,14 @@ AudispService::AudispService(IVirtualDatabase &virtual_database)
     throw status;
   }
 
-  status = ProcessEventsTablePlugin::create(d->process_events_table);
+  status = ProcessEventsTablePlugin::create(d->process_events_table,
+                                            configuration, logger);
   if (!status.succeeded()) {
     throw status;
   }
 
-  status = SocketEventsTablePlugin::create(d->socket_events_table);
+  status = SocketEventsTablePlugin::create(d->socket_events_table,
+                                           configuration, logger);
   if (!status.succeeded()) {
     throw status;
   }
@@ -111,18 +118,25 @@ AudispService::AudispService(IVirtualDatabase &virtual_database)
 }
 
 struct AudispServiceFactory::PrivateData final {
-  PrivateData(IVirtualDatabase &virtual_database_)
-      : virtual_database(virtual_database_) {}
+  PrivateData(IVirtualDatabase &virtual_database_,
+              IZeekConfiguration &configuration_, IZeekLogger &logger_)
+      : virtual_database(virtual_database_), configuration(configuration_),
+        logger(logger_) {}
 
   IVirtualDatabase &virtual_database;
+  IZeekConfiguration &configuration;
+  IZeekLogger &logger;
 };
 
 Status AudispServiceFactory::create(Ref &obj,
-                                    IVirtualDatabase &virtual_database) {
+                                    IVirtualDatabase &virtual_database,
+                                    IZeekConfiguration &configuration,
+                                    IZeekLogger &logger) {
   obj.reset();
 
   try {
-    auto ptr = new AudispServiceFactory(virtual_database);
+    auto ptr =
+        new AudispServiceFactory(virtual_database, configuration, logger);
     obj.reset(ptr);
 
     return Status::success();
@@ -143,7 +157,8 @@ Status AudispServiceFactory::spawn(IZeekService::Ref &obj) {
   obj.reset();
 
   try {
-    auto ptr = new AudispService(d->virtual_database);
+    auto ptr =
+        new AudispService(d->virtual_database, d->configuration, d->logger);
     obj.reset(ptr);
 
     return Status::success();
@@ -156,6 +171,8 @@ Status AudispServiceFactory::spawn(IZeekService::Ref &obj) {
   }
 }
 
-AudispServiceFactory::AudispServiceFactory(IVirtualDatabase &virtual_database)
-    : d(new PrivateData(virtual_database)) {}
+AudispServiceFactory::AudispServiceFactory(IVirtualDatabase &virtual_database,
+                                           IZeekConfiguration &configuration,
+                                           IZeekLogger &logger)
+    : d(new PrivateData(virtual_database, configuration, logger)) {}
 } // namespace zeek

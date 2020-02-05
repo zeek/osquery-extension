@@ -1,11 +1,14 @@
 #include "zeekagent.h"
 #include "configuration.h"
 #include "logger.h"
-#include "tables/audisp/audispservice.h"
 #include "zeekconnection.h"
 
 #if defined(ZEEK_AGENT_ENABLE_OSQUERY_SUPPORT)
 #include <zeek/iosqueryinterface.h>
+#endif
+
+#if defined(ZEEK_AGENT_PLATFORM_LINUX)
+#include <zeek/audispservicefactory.h>
 #endif
 
 #include <chrono>
@@ -206,22 +209,14 @@ ZeekAgent::initializeServiceManager(IZeekServiceManager::Ref &service_manager) {
     throw status;
   }
 
-  {
-    AudispServiceFactory::Ref audisp_service_factory;
-    status =
-        AudispServiceFactory::create(audisp_service_factory, virtual_database);
+#if defined(ZEEK_AGENT_PLATFORM_LINUX)
+  status = registerAudispServiceFactory(
+      *service_manager.get(), virtual_database, getConfig(), getLogger());
 
-    if (!status.succeeded()) {
-      return status;
-    }
-
-    status = service_manager->registerServiceFactory(
-        std::move(audisp_service_factory));
-
-    if (!status.succeeded()) {
-      return status;
-    }
+  if (!status.succeeded()) {
+    throw status;
   }
+#endif
 
   return Status::success();
 }

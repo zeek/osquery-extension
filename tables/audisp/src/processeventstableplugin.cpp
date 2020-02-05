@@ -1,22 +1,28 @@
-#include "tables/audisp/processeventstableplugin.h"
-#include "configuration.h"
-#include "logger.h"
+#include "processeventstableplugin.h"
 
 #include <chrono>
 #include <mutex>
 
 namespace zeek {
 struct ProcessEventsTablePlugin::PrivateData final {
+  PrivateData(IZeekConfiguration &configuration_, IZeekLogger &logger_)
+      : configuration(configuration_), logger(logger_) {}
+
+  IZeekConfiguration &configuration;
+  IZeekLogger &logger;
+
   RowList row_list;
   std::mutex row_list_mutex;
   std::size_t max_queued_row_count{0U};
 };
 
-Status ProcessEventsTablePlugin::create(Ref &obj) {
+Status ProcessEventsTablePlugin::create(Ref &obj,
+                                        IZeekConfiguration &configuration,
+                                        IZeekLogger &logger) {
   obj.reset();
 
   try {
-    auto ptr = new ProcessEventsTablePlugin();
+    auto ptr = new ProcessEventsTablePlugin(configuration, logger);
     obj.reset(ptr);
 
     return Status::success();
@@ -112,11 +118,11 @@ Status ProcessEventsTablePlugin::processEvents(
     if (d->row_list.size() > d->max_queued_row_count) {
       auto rows_to_remove = d->row_list.size() - d->max_queued_row_count;
 
-      getLogger().logMessage(IZeekLogger::Severity::Warning,
-                             "process_events: Dropping " +
-                                 std::to_string(rows_to_remove) +
-                                 " rows (max row count is set to " +
-                                 std::to_string(d->max_queued_row_count));
+      d->logger.logMessage(IZeekLogger::Severity::Warning,
+                           "process_events: Dropping " +
+                               std::to_string(rows_to_remove) +
+                               " rows (max row count is set to " +
+                               std::to_string(d->max_queued_row_count));
 
       // clang-format off
       d->row_list.erase(
@@ -130,8 +136,11 @@ Status ProcessEventsTablePlugin::processEvents(
   return Status::success();
 }
 
-ProcessEventsTablePlugin::ProcessEventsTablePlugin() : d(new PrivateData) {
-  d->max_queued_row_count = getConfig().maxQueuedRowCount();
+ProcessEventsTablePlugin::ProcessEventsTablePlugin(
+    IZeekConfiguration &configuration, IZeekLogger &logger)
+    : d(new PrivateData(configuration, logger)) {
+
+  d->max_queued_row_count = d->configuration.maxQueuedRowCount();
 }
 
 Status ProcessEventsTablePlugin::generateRow(

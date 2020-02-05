@@ -1,5 +1,7 @@
 #pragma once
 
+#include <zeek/izeekconfiguration.h>
+#include <zeek/izeeklogger.h>
 #include <zeek/izeekservicemanager.h>
 
 namespace zeek {
@@ -28,7 +30,10 @@ protected:
   /// \brief Constructor
   /// \param virtual_database The database where the Audisp table
   ///                         are registered
-  AudispService(IVirtualDatabase &virtual_database);
+  /// \param configuration An initialized configuration object
+  /// \param logger An initialized logger object
+  AudispService(IVirtualDatabase &virtual_database,
+                IZeekConfiguration &configuration, IZeekLogger &logger);
 
   friend class AudispServiceFactory;
 };
@@ -43,7 +48,10 @@ public:
   /// \param obj Where the new object is stored
   /// \param virtual_database The database where the Audisp table
   ///                         are registered
-  static Status create(Ref &obj, IVirtualDatabase &virtual_database);
+  /// \param configuration An initialized configuration object
+  /// \param logger An initialized logger object
+  static Status create(Ref &obj, IVirtualDatabase &virtual_database,
+                       IZeekConfiguration &configuration, IZeekLogger &logger);
 
   /// \brief Destructor
   virtual ~AudispServiceFactory() override;
@@ -58,6 +66,9 @@ public:
 
 protected:
   /// \brief Constructor
-  AudispServiceFactory(IVirtualDatabase &virtual_database);
+  /// \param configuration An initialized configuration object
+  /// \param logger An initialized logger object
+  AudispServiceFactory(IVirtualDatabase &virtual_database,
+                       IZeekConfiguration &configuration, IZeekLogger &logger);
 };
 } // namespace zeek

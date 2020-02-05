@@ -12,8 +12,11 @@ function(zeekAgentLibraries)
     add_subdirectory("broker")
   endif()
 
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    add_subdirectory("audit")
+  endif()
+
   add_subdirectory("catch2")
-  add_subdirectory("audit")
   add_subdirectory("xxhash")
 
   # If we are being built under osquery, then we may already have

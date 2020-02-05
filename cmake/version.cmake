@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.16.3)
 
 # This field is referenced
 # 1. By the main project: CMakeLists.txt
