@@ -140,7 +140,7 @@ jobs:
     - name: Store the .tar.gz package artifact
       uses: actions/upload-artifact@v1
       with:
-        name: targz_package-${{ matrix.build_type }}-${{ matrix.zeek_version }}
+        name: macos_targz_package-${{ matrix.build_type }}-${{ matrix.zeek_version }}
         path: ${{ steps.package_locations.outputs.TARGZ_PACKAGE_PATH }}
 
   macos_packaging:
@@ -152,24 +152,24 @@ jobs:
       - name: Download the TARGZ package from the macos_build job (Release, Zeek 3.0)
         uses: actions/download-artifact@v1
         with:
-          name: targz_package-Release-3.0
+          name: macos_targz_package-Release-3.0
 
       - name: Download the TARGZ package from the macos_build job (Release, Zeek 3.1)
         uses: actions/download-artifact@v1
         with:
-          name: targz_package-Release-3.1
+          name: macos_targz_package-Release-3.1
 
       - name: Locate the Zeek 3.0 packages
         id: zeek30_package_locations
         run: |
-          echo ::set-output name=TARGZ_PACKAGE_PATH::$(ls targz_package-Release-3.0/*.tar.gz)
-          echo ::set-output name=TARGZ_ASSET_NAME::zeek30_$(cd targz_package-Release-3.0 && ls *.tar.gz)
+          echo ::set-output name=TARGZ_PACKAGE_PATH::$(ls macos_targz_package-Release-3.0/*.tar.gz)
+          echo ::set-output name=TARGZ_ASSET_NAME::zeek30_$(cd macos_targz_package-Release-3.0 && ls *.tar.gz)
 
       - name: Locate the Zeek 3.1 packages
         id: zeek31_package_locations
         run: |
-          echo ::set-output name=TARGZ_PACKAGE_PATH::$(ls targz_package-Release-3.1/*.tar.gz)
-          echo ::set-output name=TARGZ_ASSET_NAME::zeek31_$(cd targz_package-Release-3.1 && ls *.tar.gz)
+          echo ::set-output name=TARGZ_PACKAGE_PATH::$(ls macos_targz_package-Release-3.1/*.tar.gz)
+          echo ::set-output name=TARGZ_ASSET_NAME::zeek31_$(cd macos_targz_package-Release-3.1 && ls *.tar.gz)
 
       - name: Draft the new release
         id: create_release

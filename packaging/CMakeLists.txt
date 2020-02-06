@@ -67,10 +67,18 @@ function(zeekAgentPackaging)
     DESTINATION "bin"
   )
 
-  install(
-    FILES "config/config.sample.json"
-          "config/10-zeek_agent.sample.rules"
+  set(sample_config_list
+    "config/config.sample.json"
+  )
 
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    list(APPEND sample_config_list
+      "config/10-zeek_agent.sample.rules"
+    )
+  endif()
+
+  install(
+    FILES ${sample_config_list}
     DESTINATION "/etc/zeek-agent"
   )
 endfunction()

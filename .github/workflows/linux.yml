@@ -154,25 +154,22 @@ jobs:
         echo ::set-output name=RPM_PACKAGE_PATH::$(ls package/*.rpm)
         echo ::set-output name=TARGZ_PACKAGE_PATH::$(ls package/*.tar.gz)
 
-    - name: Check the package contents
-      run: ./scripts/check_linux_package.sh "${{ steps.package_locations.outputs.TARGZ_PACKAGE_PATH }}"
-
     - name: Store the .deb package artifact
       uses: actions/upload-artifact@v1
       with:
-        name: deb_package-${{ matrix.build_type }}-${{ matrix.zeek_version }}
+        name: linux_deb_package-${{ matrix.build_type }}-${{ matrix.zeek_version }}
         path: ${{ steps.package_locations.outputs.DEB_PACKAGE_PATH }}
 
     - name: Store the .rpm package artifact
       uses: actions/upload-artifact@v1
       with:
-        name: rpm_package-${{ matrix.build_type }}-${{ matrix.zeek_version }}
+        name: linux_rpm_package-${{ matrix.build_type }}-${{ matrix.zeek_version }}
         path: ${{ steps.package_locations.outputs.RPM_PACKAGE_PATH }}
 
     - name: Store the .tar.gz package artifact
       uses: actions/upload-artifact@v1
       with:
-        name: targz_package-${{ matrix.build_type }}-${{ matrix.zeek_version }}
+        name: linux_targz_package-${{ matrix.build_type }}-${{ matrix.zeek_version }}
         path: ${{ steps.package_locations.outputs.TARGZ_PACKAGE_PATH }}
 
   linux_packaging:
@@ -184,56 +181,56 @@ jobs:
       - name: Download the DEB package from the linux_build job (Release, Zeek 3.0)
         uses: actions/download-artifact@v1
         with:
-          name: deb_package-Release-3.0
+          name: linux_deb_package-Release-3.0
 
       - name: Download the RPM package from the linux_build job (Release, Zeek 3.0)
         uses: actions/download-artifact@v1
         with:
-          name: rpm_package-Release-3.0
+          name: linux_rpm_package-Release-3.0
 
       - name: Download the TARGZ package from the linux_build job (Release, Zeek 3.0)
         uses: actions/download-artifact@v1
         with:
-          name: targz_package-Release-3.0
+          name: linux_targz_package-Release-3.0
 
       - name: Download the DEB package from the linux_build job (Release, Zeek 3.1)
         uses: actions/download-artifact@v1
         with:
-          name: deb_package-Release-3.1
+          name: linux_deb_package-Release-3.1
 
       - name: Download the RPM package from the linux_build job (Release, Zeek 3.1)
         uses: actions/download-artifact@v1
         with:
-          name: rpm_package-Release-3.1
+          name: linux_rpm_package-Release-3.1
 
       - name: Download the TARGZ package from the linux_build job (Release, Zeek 3.1)
         uses: actions/download-artifact@v1
         with:
-          name: targz_package-Release-3.1
+          name: linux_targz_package-Release-3.1
 
       - name: Locate the Zeek 3.0 packages
         id: zeek30_package_locations
         run: |
-          echo ::set-output name=DEB_PACKAGE_PATH::$(ls deb_package-Release-3.0/*.deb)
-          echo ::set-output name=DEB_ASSET_NAME::zeek30_$(cd deb_package-Release-3.0 && ls *.deb)
+          echo ::set-output name=DEB_PACKAGE_PATH::$(ls linux_deb_package-Release-3.0/*.deb)
+          echo ::set-output name=DEB_ASSET_NAME::zeek30_$(cd linux_deb_package-Release-3.0 && ls *.deb)
 
-          echo ::set-output name=RPM_PACKAGE_PATH::$(ls rpm_package-Release-3.0/*.rpm)
-          echo ::set-output name=RPM_ASSET_NAME::zeek30_$(cd rpm_package-Release-3.0 && ls *.rpm)
+          echo ::set-output name=RPM_PACKAGE_PATH::$(ls linux_rpm_package-Release-3.0/*.rpm)
+          echo ::set-output name=RPM_ASSET_NAME::zeek30_$(cd linux_rpm_package-Release-3.0 && ls *.rpm)
 
-          echo ::set-output name=TARGZ_PACKAGE_PATH::$(ls targz_package-Release-3.0/*.tar.gz)
-          echo ::set-output name=TARGZ_ASSET_NAME::zeek30_$(cd targz_package-Release-3.0 && ls *.tar.gz)
+          echo ::set-output name=TARGZ_PACKAGE_PATH::$(ls linux_targz_package-Release-3.0/*.tar.gz)
+          echo ::set-output name=TARGZ_ASSET_NAME::zeek30_$(cd linux_targz_package-Release-3.0 && ls *.tar.gz)
 
       - name: Locate the Zeek 3.1 packages
         id: zeek31_package_locations
         run: |
-          echo ::set-output name=DEB_PACKAGE_PATH::$(ls deb_package-Release-3.1/*.deb)
-          echo ::set-output name=DEB_ASSET_NAME::zeek31_$(cd deb_package-Release-3.1 && ls *.deb)
+          echo ::set-output name=DEB_PACKAGE_PATH::$(ls linux_deb_package-Release-3.1/*.deb)
+          echo ::set-output name=DEB_ASSET_NAME::zeek31_$(cd linux_deb_package-Release-3.1 && ls *.deb)
 
-          echo ::set-output name=RPM_PACKAGE_PATH::$(ls rpm_package-Release-3.1/*.rpm)
-          echo ::set-output name=RPM_ASSET_NAME::zeek31_$(cd rpm_package-Release-3.1 && ls *.rpm)
+          echo ::set-output name=RPM_PACKAGE_PATH::$(ls linux_rpm_package-Release-3.1/*.rpm)
+          echo ::set-output name=RPM_ASSET_NAME::zeek31_$(cd linux_rpm_package-Release-3.1 && ls *.rpm)
 
-          echo ::set-output name=TARGZ_PACKAGE_PATH::$(ls targz_package-Release-3.1/*.tar.gz)
-          echo ::set-output name=TARGZ_ASSET_NAME::zeek31_$(cd targz_package-Release-3.1 && ls *.tar.gz)
+          echo ::set-output name=TARGZ_PACKAGE_PATH::$(ls linux_targz_package-Release-3.1/*.tar.gz)
+          echo ::set-output name=TARGZ_ASSET_NAME::zeek31_$(cd linux_targz_package-Release-3.1 && ls *.tar.gz)
 
       - name: Draft the new release
         id: create_release
