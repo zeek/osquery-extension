@@ -9,6 +9,8 @@
 
 #if defined(ZEEK_AGENT_PLATFORM_LINUX)
 #include <zeek/audispservicefactory.h>
+#elif defined(ZEEK_AGENT_PLATFORM_MACOS)
+#include <zeek/endpointsecurityservicefactory.h>
 #endif
 
 #include <chrono>
@@ -211,6 +213,14 @@ ZeekAgent::initializeServiceManager(IZeekServiceManager::Ref &service_manager) {
 
 #if defined(ZEEK_AGENT_PLATFORM_LINUX)
   status = registerAudispServiceFactory(
+      *service_manager.get(), virtual_database, getConfig(), getLogger());
+
+  if (!status.succeeded()) {
+    throw status;
+  }
+
+#elif defined(ZEEK_AGENT_PLATFORM_MACOS)
+  status = registerEndpointSecurityServiceFactory(
       *service_manager.get(), virtual_database, getConfig(), getLogger());
 
   if (!status.succeeded()) {

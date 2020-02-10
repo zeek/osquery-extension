@@ -8,6 +8,7 @@ option(ZEEK_AGENT_ENABLE_TESTS "Set to ON to build the tests")
 option(ZEEK_AGENT_ENABLE_INSTALL "Set to ON to generate the install directives")
 option(ZEEK_AGENT_ENABLE_SANITIZERS "Set to ON to enable sanitizers. Only available when compiling with Clang")
 option(ZEEK_AGENT_ENABLE_DOCUMENTATION "Set to ON to generate the Doxygen documentation")
+set(ZEEK_AGENT_CODESIGN_IDENTITY "" CACHE STRING "Codesign identity")
 
 set(ZEEK_AGENT_ZEEK_COMPATIBILITY "3.1" CACHE STRING "Build with either '3.0' or '3.1' Zeek server compatibility")
 if("${ZEEK_AGENT_ZEEK_COMPATIBILITY}" STREQUAL "3.0")

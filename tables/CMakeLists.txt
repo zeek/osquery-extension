@@ -5,6 +5,8 @@ function(zeekAgentTables)
 
   if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     add_subdirectory("audisp")
+  elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+    add_subdirectory("endpointsecurity")
   endif()
 endfunction()
 
