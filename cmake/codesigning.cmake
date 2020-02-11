@@ -32,30 +32,12 @@ function(codeSign target_name entitlements_file)
   endif()
 
   set(target_file_path "${target_binary_dir}/${target_name}.app")
-  set(output_folder "${CMAKE_BINARY_DIR}/codesigned")
-  set(output_path "${output_folder}/${target_name}.app")
 
   add_custom_command(
-    OUTPUT "${output_path}"
-    DEPENDS "$<TARGET_FILE:${target_name}>"
-    COMMAND "${CMAKE_COMMAND}" -E make_directory "${output_folder}"
-    COMMAND "${CMAKE_COMMAND}" -E copy_directory "${target_file_path}" "${output_path}"
-    COMMAND codesign --entitlements "${entitlements_file}" --force -s "${ZEEK_AGENT_CODESIGN_IDENTITY}" -v "${output_path}"
+    TARGET "${target_name}" POST_BUILD
+    COMMAND codesign --entitlements "${entitlements_file}" --force -s "${ZEEK_AGENT_CODESIGN_IDENTITY}" -v "${target_file_path}"
     COMMENT "Codesigning target ${target_name}..."
     VERBATIM
-  )
-
-  set(codesign_target_name "codesign_${target_name}")
-  add_custom_target("${codesign_target_name}"
-    DEPENDS "${output_path}"
-  )
-
-  if(NOT TARGET "codesign")
-    add_custom_target("codesign")
-  endif()
-
-  add_dependencies(codesign
-    "${codesign_target_name}"
   )
 endfunction()
 

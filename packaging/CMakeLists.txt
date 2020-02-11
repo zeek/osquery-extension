@@ -31,16 +31,34 @@ function(zeekAgentPackaging)
     message(FATAL_ERROR "The ZEEK_AGENT_INSTALL_PATH parameter is mandatory")
   endif()
 
-  set(standalone_zeek_agent_path "${ZEEK_AGENT_INSTALL_PATH}/${CMAKE_INSTALL_PREFIX}/bin/zeek-agent")
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux" OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    set(prefix_folder_name "${CMAKE_INSTALL_PREFIX}/bin")
+    set(application_name_suffix "")
+
+  elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+    set(prefix_folder_name "Applications")
+    set(application_name_suffix ".app")
+
+  else()
+    message(FATAL_ERROR "Unsupported platform")
+  endif()
+
+  message(STATUS "Looking for executables inside ${ZEEK_AGENT_INSTALL_PATH}...")
+
+  set(standalone_zeek_agent_path "${ZEEK_AGENT_INSTALL_PATH}/${prefix_folder_name}/zeek-agent${application_name_suffix}")
   if(EXISTS "${standalone_zeek_agent_path}")
     message(STATUS "Found: Zeek Agent (standalone edition)")
     list(APPEND executable_file_list "${standalone_zeek_agent_path}")
+  else()
+    message(WARNING "Not found: ${standalone_zeek_agent_path}")
   endif()
 
-  set(osquery_zeek_agent_path "${ZEEK_AGENT_INSTALL_PATH}/${CMAKE_INSTALL_PREFIX}/bin/zeek-agent-osquery")
+  set(osquery_zeek_agent_path "${ZEEK_AGENT_INSTALL_PATH}/${prefix_folder_name}/zeek-agent-osquery${application_name_suffix}")
   if(EXISTS "${osquery_zeek_agent_path}")
     message(STATUS "Found: Zeek Agent (osquery edition)")
     list(APPEND executable_file_list "${osquery_zeek_agent_path}")
+  else()
+    message(WARNING "Not found: ${osquery_zeek_agent_path}")
   endif()
 
   if("${executable_file_list}" STREQUAL "")
@@ -57,15 +75,37 @@ function(zeekAgentPackaging)
     )
   endif()
 
-  install(
-    FILES ${executable_file_list}
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux" OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    set(install_directive "FILES")
 
-    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-                GROUP_READ GROUP_WRITE GROUP_EXECUTE
-                WORLD_READ             WORLD_EXECUTE
+  elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+    set(install_directive "DIRECTORY")
 
-    DESTINATION "bin"
-  )
+  else()
+    message(FATAL_ERROR "Unsupported platform")
+  endif()
+
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux" OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    install(
+      FILES ${executable_file_list}
+
+      PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                  GROUP_READ GROUP_WRITE GROUP_EXECUTE
+                  WORLD_READ             WORLD_EXECUTE
+
+      DESTINATION "bin"
+    )
+
+  elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+    install(
+      DIRECTORY ${executable_file_list}
+      DESTINATION "/Applications"
+      USE_SOURCE_PERMISSIONS
+    )
+
+  else()
+    message(FATAL_ERROR "Unsupported platform")
+  endif()
 
   set(sample_config_list
     "config/config.sample.json"

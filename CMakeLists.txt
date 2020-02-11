@@ -83,7 +83,17 @@ function(zeekAgent)
   endforeach()
 
   if(ZEEK_AGENT_ENABLE_INSTALL)
-    install(TARGETS ${target_name_list} DESTINATION "bin")
+    if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux" OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+      set(destination_path "bin")
+
+    elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+      set(destination_path "/Applications")
+
+    else()
+      message(FATAL_ERROR "Unsupported platform")
+    endif()
+
+    install(TARGETS ${target_name_list} DESTINATION "${destination_path}")
   endif()
 
   if(ZEEK_AGENT_ENABLE_DOCUMENTATION)
