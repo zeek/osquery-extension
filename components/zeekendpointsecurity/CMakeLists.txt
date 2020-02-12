@@ -31,6 +31,15 @@ function(zeekAgentComponentsEndpointSecurity)
   target_include_directories("${PROJECT_NAME}"
     SYSTEM INTERFACE include
   )
+
+  generateZeekAgentTest(
+    SOURCE_TARGET
+      "${PROJECT_NAME}"
+
+    SOURCES
+      tests/main.cpp
+      tests/endpointsecurityconsumer.cpp
+  )
 endfunction()
 
 function(importExternalLibrary target_name library_name)

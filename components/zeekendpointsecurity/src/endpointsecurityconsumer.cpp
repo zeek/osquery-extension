@@ -31,6 +31,7 @@ struct EndpointSecurityConsumer::PrivateData final {
 EndpointSecurityConsumer::~EndpointSecurityConsumer() {
   es_unsubscribe_all(d->es_client);
   es_delete_client(d->es_client);
+
   d->event_list_cv.notify_all();
 }
 
@@ -112,6 +113,7 @@ EndpointSecurityConsumer::EndpointSecurityConsumer(
 
   if (es_subscribe(d->es_client, event_list.data(), event_list.size()) !=
       ES_RETURN_SUCCESS) {
+
     throw Status::failure(
         "Failed to subscribe to the Endpoint Security events.");
   }
@@ -167,9 +169,12 @@ EndpointSecurityConsumer::initializeEventHeader(Event::Header &event_header,
   event_header.user_id = audit_token_to_euid(process.audit_token);
   event_header.group_id = audit_token_to_egid(process.audit_token);
   event_header.platform_binary = process.is_platform_binary;
+
   event_header.signing_id.assign(process.signing_id.data,
                                  process.signing_id.length);
+
   event_header.team_id.assign(process.team_id.data, process.team_id.length);
+
   event_header.path.assign(process.executable->path.data,
                            process.executable->path.length);
 
@@ -205,6 +210,7 @@ EndpointSecurityConsumer::processExecNotification(Event &event,
        ++argument_index) {
 
     auto current_arg = es_exec_arg(&message.event.exec, argument_index);
+
     exec_data.argument_list.push_back(
         std::string(current_arg.data, current_arg.length));
   }
