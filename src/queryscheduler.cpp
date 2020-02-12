@@ -114,8 +114,10 @@ Status QueryScheduler::processEvents() {
         continue;
       }
 
-      getLogger().logMessage(IZeekLogger::Severity::Information,
-                             "A new query has been scheduled: " + task.query);
+      getLogger().logMessage(
+          IZeekLogger::Severity::Information,
+          "A new query has been scheduled: " + task.query + " (every " +
+              std::to_string(task.interval.value()) + " seconds)");
 
       auto query_timestamp = task.interval.value() + current_timestamp;
 

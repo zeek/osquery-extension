@@ -1,10 +1,17 @@
 #include "endpointsecurityconsumer.h"
 
 #include <array>
+#include <chrono>
 #include <condition_variable>
+#include <ctime>
+#include <iomanip>
 #include <mutex>
+#include <optional>
+#include <sstream>
+#include <thread>
 
 #include <EndpointSecurity/EndpointSecurity.h>
+#include <bsm/libbsm.h>
 
 namespace zeek {
 struct EndpointSecurityConsumer::PrivateData final {
@@ -24,17 +31,23 @@ struct EndpointSecurityConsumer::PrivateData final {
 EndpointSecurityConsumer::~EndpointSecurityConsumer() {
   es_unsubscribe_all(d->es_client);
   es_delete_client(d->es_client);
+  d->event_list_cv.notify_all();
 }
 
 Status EndpointSecurityConsumer::getEvents(EventList &event_list) {
   event_list = {};
 
-  std::unique_lock<std::mutex> lock(d->event_list_mutex);
+  std::this_thread::sleep_for(std::chrono::seconds(1U));
 
-  if (d->event_list_cv.wait_for(lock, std::chrono::seconds(1U)) ==
-      std::cv_status::no_timeout) {
-    event_list = std::move(d->event_list);
-    d->event_list = {};
+  {
+    std::unique_lock<std::mutex> lock(d->event_list_mutex);
+
+    if (d->event_list_cv.wait_for(lock, std::chrono::seconds(1U)) ==
+        std::cv_status::no_timeout) {
+
+      event_list = std::move(d->event_list);
+      d->event_list = {};
+    }
   }
 
   return Status::success();
@@ -106,6 +119,7 @@ EndpointSecurityConsumer::EndpointSecurityConsumer(
 
 void EndpointSecurityConsumer::endpointSecurityCallback(
     const void *message_ptr) {
+
   const auto &message = *static_cast<const es_message_t *>(message_ptr);
 
   Status status;
@@ -123,8 +137,51 @@ void EndpointSecurityConsumer::endpointSecurityCallback(
   } else {
     std::lock_guard<std::mutex> lock(d->event_list_mutex);
     d->event_list.push_back(std::move(event));
+
     d->event_list_cv.notify_all();
   }
+}
+
+Status
+EndpointSecurityConsumer::initializeEventHeader(Event::Header &event_header,
+                                                const void *message_ptr) {
+
+  const auto &message = *static_cast<const es_message_t *>(message_ptr);
+
+  std::optional<std::reference_wrapper<es_process_t>> process_ref;
+  if (message.event_type == ES_EVENT_TYPE_NOTIFY_EXEC) {
+    process_ref = std::ref(*message.event.exec.target);
+
+  } else if (message.event_type == ES_EVENT_TYPE_NOTIFY_FORK) {
+    process_ref = std::ref(*message.event.fork.child);
+
+  } else {
+    return Status::failure("Unrecognized event type");
+  }
+
+  auto &process = process_ref.value().get();
+  event_header.timestamp = std::time(nullptr);
+  event_header.parent_process_id = process.ppid;
+  event_header.orig_parent_process_id = process.original_ppid;
+  event_header.process_id = audit_token_to_pid(process.audit_token);
+  event_header.user_id = audit_token_to_euid(process.audit_token);
+  event_header.group_id = audit_token_to_egid(process.audit_token);
+  event_header.platform_binary = process.is_platform_binary;
+  event_header.signing_id.assign(process.signing_id.data,
+                                 process.signing_id.length);
+  event_header.team_id.assign(process.team_id.data, process.team_id.length);
+  event_header.path.assign(process.executable->path.data,
+                           process.executable->path.length);
+
+  std::stringstream buffer;
+  for (const auto &b : process.cdhash) {
+    buffer << std::setfill('0') << std::setw(2) << std::hex
+           << static_cast<int>(b);
+  }
+
+  event_header.cdhash = buffer.str();
+
+  return Status::success();
 }
 
 Status
@@ -132,15 +189,27 @@ EndpointSecurityConsumer::processExecNotification(Event &event,
                                                   const void *message_ptr) {
   event = {};
 
-  const auto &message = *static_cast<const es_message_t *>(message_ptr);
-
   Event new_event;
-  new_event.header.process_id = 0;
-  new_event.header.thread_id = 0;
+  new_event.type = Event::Type::Exec;
 
-  Event::ExecEventData event_data;
-  event_data.path = message.event.exec.target->executable->path.data;
-  new_event.data = std::move(event_data);
+  auto status = initializeEventHeader(new_event.header, message_ptr);
+  if (!status.succeeded()) {
+    return status;
+  }
+
+  const auto &message = *static_cast<const es_message_t *>(message_ptr);
+  Event::ExecEventData exec_data;
+
+  auto argument_count = es_exec_arg_count(&message.event.exec);
+  for (auto argument_index = 0U; argument_index < argument_count;
+       ++argument_index) {
+
+    auto current_arg = es_exec_arg(&message.event.exec, argument_index);
+    exec_data.argument_list.push_back(
+        std::string(current_arg.data, current_arg.length));
+  }
+
+  new_event.opt_exec_event_data = std::move(exec_data);
 
   event = std::move(new_event);
   return Status::success();
@@ -151,15 +220,13 @@ EndpointSecurityConsumer::processForkNotification(Event &event,
                                                   const void *message_ptr) {
   event = {};
 
-  const auto &message = *static_cast<const es_message_t *>(message_ptr);
-  static_cast<void>(message);
-
   Event new_event;
-  new_event.header.process_id = 0;
-  new_event.header.thread_id = 0;
+  new_event.type = Event::Type::Fork;
 
-  Event::ForkEventData event_data;
-  new_event.data = std::move(event_data);
+  auto status = initializeEventHeader(new_event.header, message_ptr);
+  if (!status.succeeded()) {
+    return status;
+  }
 
   event = std::move(new_event);
   return Status::success();

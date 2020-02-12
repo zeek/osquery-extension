@@ -9,7 +9,7 @@ function(zeekAgentComponentsEndpointSecurity)
     src/endpointsecurityconsumer.cpp
   )
 
-  importEndpointSecurity()
+  importLibraries()
 
   target_link_libraries("${PROJECT_NAME}"
     PRIVATE
@@ -19,7 +19,9 @@ function(zeekAgentComponentsEndpointSecurity)
       zeek_utils
       zeek_logger
       zeek_configuration
+
       thirdparty_endpointsecurity
+      thirdparty_bsm
   )
 
   target_include_directories("${PROJECT_NAME}"
@@ -31,19 +33,26 @@ function(zeekAgentComponentsEndpointSecurity)
   )
 endfunction()
 
-function(importEndpointSecurity)
-  find_library(endpointsecurity_lib_path "libEndpointSecurity.tbd"
+function(importExternalLibrary target_name library_name)
+  set(library_path_var "${library_name}_path")
+
+  find_library("${library_path_var}" "${library_name}"
     PATHS "${CMAKE_OSX_SYSROOT}/usr/lib"
   )
 
-  if("${endpointsecurity_lib_path}" STREQUAL "endpointsecurity_lib_path-NOTFOUND")
-    message(FATAL_ERROR "The EndpointSecurity library was not found")
+  if("${${library_path_var}}" STREQUAL "${library_path_var}-NOTFOUND")
+    message(FATAL_ERROR "The ${target_name} (${library_name}) library was not found")
   endif()
 
-  add_library(thirdparty_endpointsecurity STATIC IMPORTED GLOBAL)
-  set_target_properties(thirdparty_endpointsecurity PROPERTIES
-    IMPORTED_LOCATION "${endpointsecurity_lib_path}"
+  add_library("thirdparty_${target_name}" STATIC IMPORTED GLOBAL)
+  set_target_properties("thirdparty_${target_name}" PROPERTIES
+    IMPORTED_LOCATION "${${library_path_var}}"
   )
+endfunction()
+
+function(importLibraries)
+  importExternalLibrary("endpointsecurity" "libEndpointSecurity.tbd")
+  importExternalLibrary("bsm" "libbsm.tbd")
 endfunction()
 
 zeekAgentComponentsEndpointSecurity()

@@ -47,22 +47,19 @@ const ProcessEventsTablePlugin::Schema &
 ProcessEventsTablePlugin::schema() const {
   // clang-format off
   static const Schema kTableSchema = {
-    { "syscall", IVirtualTable::ColumnType::String },
-    { "pid", IVirtualTable::ColumnType::Integer },
-    { "parent", IVirtualTable::ColumnType::Integer },
-    { "auid", IVirtualTable::ColumnType::Integer },
-    { "uid", IVirtualTable::ColumnType::Integer },
-    { "euid", IVirtualTable::ColumnType::Integer },
-    { "gid", IVirtualTable::ColumnType::Integer },
-    { "egid", IVirtualTable::ColumnType::Integer },
-    { "owner_uid", IVirtualTable::ColumnType::Integer },
-    { "owner_gid", IVirtualTable::ColumnType::Integer },
-    { "cmdline_size", IVirtualTable::ColumnType::Integer },
-    { "cmdline", IVirtualTable::ColumnType::String },
-    { "path", IVirtualTable::ColumnType::String },
-    { "mode", IVirtualTable::ColumnType::String },
-    { "cwd", IVirtualTable::ColumnType::String },
-    { "time", IVirtualTable::ColumnType::Integer }
+    { "timestamp", IVirtualTable::ColumnType::Integer },
+    { "type", IVirtualTable::ColumnType::String },
+    { "parent_process_id", IVirtualTable::ColumnType::Integer },
+    { "orig_parent_process_id", IVirtualTable::ColumnType::Integer },
+    { "process_id", IVirtualTable::ColumnType::Integer },
+    { "user_id", IVirtualTable::ColumnType::Integer },
+    { "group_id", IVirtualTable::ColumnType::Integer },
+    { "platform_binary", IVirtualTable::ColumnType::Integer },
+    { "signing_id", IVirtualTable::ColumnType::Integer },
+    { "team_id", IVirtualTable::ColumnType::Integer },
+    { "cdhash", IVirtualTable::ColumnType::Integer },
+    { "path", IVirtualTable::ColumnType::Integer },
+    { "cmdline", IVirtualTable::ColumnType::Integer }
   };
   // clang-format on
 
@@ -139,42 +136,49 @@ Status ProcessEventsTablePlugin::generateRow(
 
   row = {};
 
-  // TODO(alessandro): Add the remaining fields
-  row["pid"] = static_cast<std::int64_t>(0);
-  row["parent"] = static_cast<std::int64_t>(0);
-  row["auid"] = static_cast<std::int64_t>(0);
-  row["uid"] = static_cast<std::int64_t>(0);
-  row["euid"] = static_cast<std::int64_t>(0);
-  row["gid"] = static_cast<std::int64_t>(0);
-  row["egid"] = static_cast<std::int64_t>(0);
-  row["owner_uid"] = static_cast<std::int64_t>(0);
-  row["owner_gid"] = static_cast<std::int64_t>(0);
-  row["cmdline_size"] = static_cast<std::int64_t>(0);
-  row["cmdline"] = "";
-  row["path"] = "";
-  row["mode"] = static_cast<std::int64_t>(0);
-  row["cwd"] = "";
+  const auto &header = event.header;
+  row["timestamp"] = static_cast<std::int64_t>(header.timestamp);
 
-  row["time"] = static_cast<std::int64_t>(0);
+  row["parent_process_id"] =
+      static_cast<std::int64_t>(header.parent_process_id);
 
-  if (std::holds_alternative<IEndpointSecurityConsumer::Event::ExecEventData>(
-          event.data)) {
-    const auto &exec_event_data =
-        std::get<IEndpointSecurityConsumer::Event::ExecEventData>(event.data);
+  row["orig_parent_process_id"] =
+      static_cast<std::int64_t>(header.orig_parent_process_id);
 
-    row["syscall"] = "exec";
-    row["path"] = exec_event_data.path;
+  row["process_id"] = static_cast<std::int64_t>(header.process_id);
+  row["user_id"] = static_cast<std::int64_t>(header.user_id);
+  row["group_id"] = static_cast<std::int64_t>(header.group_id);
+  row["platform_binary"] = static_cast<std::int64_t>(header.platform_binary);
+  row["signing_id"] = header.signing_id;
+  row["team_id"] = header.team_id;
+  row["cdhash"] = header.cdhash;
+  row["path"] = header.path;
 
-  } else if (std::holds_alternative<
-                 IEndpointSecurityConsumer::Event::ForkEventData>(event.data)) {
-    const auto &fork_event_data =
-        std::get<IEndpointSecurityConsumer::Event::ForkEventData>(event.data);
-    static_cast<void>(fork_event_data);
+  if (event.type == IEndpointSecurityConsumer::Event::Type::Exec) {
+    row["type"] = "exec";
 
-    row["syscall"] = "fork";
+    if (event.opt_exec_event_data.has_value()) {
+      const auto &exec_event_data = event.opt_exec_event_data.value();
 
-  } else {
-    return Status::failure("Invalid event");
+      std::string buffer;
+      for (const auto &argument : exec_event_data.argument_list) {
+        buffer.reserve(buffer.size() + argument.size() + 1U);
+
+        buffer.push_back(' ');
+        buffer.append(argument);
+      }
+
+      row["cmdline"] = std::move(buffer);
+    }
+
+  } else if (event.type == IEndpointSecurityConsumer::Event::Type::Fork) {
+    row["type"] = "fork";
+
+    if (event.opt_exec_event_data.has_value()) {
+      return Status::failure("Invalid event data");
+    }
+
+    row["cmdline"] = "";
   }
 
   return Status::success();

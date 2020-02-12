@@ -29,16 +29,23 @@ private:
   void endpointSecurityCallback(const void *message_ptr);
 
 public:
+  /// \brief Initializes the event header from the given message
+  /// \param event_header The event header object to initialize
+  /// \param message_ptr a valid pointer to an EndpointSecurity es_message_t
+  /// \return A Status object
+  static Status initializeEventHeader(Event::Header &event_header,
+                                      const void *message_ptr);
+
   /// \brief Process execution event handler
   /// \param event the generated event object
   /// \param message_ptr a valid pointer to an EndpointSecurity es_message_t
-  /// structure \return A Status object
+  /// \return A Status object
   static Status processExecNotification(Event &event, const void *message_ptr);
 
   /// \brief Process forking event handler
   /// \param event the generated event object
   /// \param message_ptr a valid pointer to an EndpointSecurity es_message_t
-  /// structure \return A Status object
+  /// \return A Status object
   static Status processForkNotification(Event &event, const void *message_ptr);
 
   friend class IEndpointSecurityConsumer;
