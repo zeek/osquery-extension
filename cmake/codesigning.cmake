@@ -12,6 +12,10 @@ function(codeSign target_name entitlements_file)
     message(FATAL_ERROR "The specified target is not an executable")
   endif()
 
+  if(NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+    return()
+  endif()
+
   get_target_property(target_type "${target_name}" MACOSX_BUNDLE)
   if(NOT target_type)
     message(FATAL_ERROR "The specified target is not configured as a macOS bundle")
