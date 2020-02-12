@@ -305,19 +305,29 @@ Status ZeekConnection::processTaskOutput(
 
   if (task_output.update_type.has_value()) {
     DifferentialOutput differential_output;
-    auto status = computeDifferentials(d->differential_context,
-                                       differential_output, task_output);
+    bool initial_state{false};
+    auto status =
+        computeDifferentials(d->differential_context, differential_output,
+                             initial_state, task_output);
     if (!status.succeeded()) {
       return status;
     }
 
-    publishTaskOutput("zeek_agent::ADD", task_output.response_topic,
-                      task_output.response_event, task_output.cookie,
-                      differential_output.added_row_list);
+    if (initial_state) {
+      publishTaskOutput("zeek_agent::INITIAL", task_output.response_topic,
+                        task_output.response_event, task_output.cookie,
+                        differential_output.added_row_list);
 
-    publishTaskOutput("zeek_agent::REMOVE", task_output.response_topic,
-                      task_output.response_event, task_output.cookie,
-                      differential_output.removed_row_list);
+    } else {
+      // Only the requested update (add, remove or both) is populated
+      publishTaskOutput("zeek_agent::ADD", task_output.response_topic,
+                        task_output.response_event, task_output.cookie,
+                        differential_output.added_row_list);
+
+      publishTaskOutput("zeek_agent::REMOVE", task_output.response_topic,
+                        task_output.response_event, task_output.cookie,
+                        differential_output.removed_row_list);
+    }
 
   } else {
     publishTaskOutput("zeek_agent::SNAPSHOT", task_output.response_topic,
@@ -599,9 +609,10 @@ std::string ZeekConnection::computeQueryID(const std::string &response_topic,
 
 Status ZeekConnection::computeDifferentials(
     DifferentialContext &context, DifferentialOutput &output,
-    const QueryScheduler::TaskOutput &task_output) {
+    bool &initial_state, const QueryScheduler::TaskOutput &task_output) {
 
   output = {};
+  initial_state = {};
 
   // Generate new differential data for this query output
   DifferentialData differential_data;
@@ -622,6 +633,8 @@ Status ZeekConnection::computeDifferentials(
 
   auto old_differential_data_it = context.find(query_id);
   if (old_differential_data_it == context.end()) {
+    initial_state = true;
+
     context.insert({query_id, std::move(differential_data)});
     output.added_row_list = task_output.query_output;
 

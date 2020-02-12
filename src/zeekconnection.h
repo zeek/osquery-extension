@@ -143,10 +143,11 @@ public:
   ///        differential context
   /// \param context The differential context, updated on return
   /// \param output The differential output
-  /// \param task_output The full task output
-  /// \return A Status object
+  /// \param initial_state Set to true if this is the first output generated for
+  /// the task \param task_output The full task output \return A Status object
   static Status
   computeDifferentials(DifferentialContext &context, DifferentialOutput &output,
+                       bool &initial_state,
                        const QueryScheduler::TaskOutput &task_output);
 
   /// \return The unique host identifier

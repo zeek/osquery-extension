@@ -95,23 +95,28 @@ TEST_CASE("Query differentials", "[ZeekConnection]") {
   task_output.cookie = "DummyCookie";
   task_output.update_type = QueryScheduler::Task::UpdateType::Both;
 
-  // On the first run, we expect to have 3 rows added and 0 removed
+  // On the first run, we expect to have 3 rows added and 0 removed. This should
+  // be marked as initial state
   ZeekConnection::DifferentialOutput diff_output;
+  bool initial_state{false};
 
   task_output.query_output = kQueryOutput01;
-  auto status = ZeekConnection::computeDifferentials(diff_context, diff_output,
-                                                     task_output);
+  auto status = ZeekConnection::computeDifferentials(
+      diff_context, diff_output, initial_state, task_output);
 
   REQUIRE(status.succeeded());
+  REQUIRE(initial_state);
   REQUIRE(diff_output.added_row_list.size() == 3U);
   REQUIRE(diff_output.removed_row_list.empty());
 
-  // On the second run, the output has not changed
+  // On the second run, the output has not changed. From now on, the
+  // initial_state variable should always be set to false
   task_output.query_output = kQueryOutput01;
   status = ZeekConnection::computeDifferentials(diff_context, diff_output,
-                                                task_output);
+                                                initial_state, task_output);
 
   REQUIRE(status.succeeded());
+  REQUIRE(!initial_state);
   REQUIRE(diff_output.added_row_list.empty());
   REQUIRE(diff_output.removed_row_list.empty());
 
@@ -119,18 +124,20 @@ TEST_CASE("Query differentials", "[ZeekConnection]") {
   // have been left intact
   task_output.query_output = kQueryOutput02;
   status = ZeekConnection::computeDifferentials(diff_context, diff_output,
-                                                task_output);
+                                                initial_state, task_output);
 
   REQUIRE(status.succeeded());
+  REQUIRE(!initial_state);
   REQUIRE(diff_output.added_row_list.empty());
   REQUIRE(diff_output.removed_row_list.size() == 1U);
 
   // On the fourth run, two rows have disappeared and one has been restored
   task_output.query_output = kQueryOutput03;
   status = ZeekConnection::computeDifferentials(diff_context, diff_output,
-                                                task_output);
+                                                initial_state, task_output);
 
   REQUIRE(status.succeeded());
+  REQUIRE(!initial_state);
   REQUIRE(diff_output.added_row_list.size() == 1U);
   REQUIRE(diff_output.removed_row_list.size() == 2U);
 }
