@@ -28,6 +28,15 @@ function(zeekAgentTablesEndpointSecurity)
   )
 
   target_link_libraries(zeek_tables INTERFACE zeek_endpoint_security_tables)
+
+  generateZeekAgentTest(
+    SOURCE_TARGET
+      "zeek_endpoint_security_tables"
+
+    SOURCES
+      tests/main.cpp
+      tests/processeventstableplugin.cpp
+  )
 endfunction()
 
 zeekAgentTablesEndpointSecurity()
