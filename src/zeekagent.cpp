@@ -152,7 +152,6 @@ Status ZeekAgent::exec(std::atomic_bool &terminate) {
   service_manager.reset();
 
   getLogger().logMessage(IZeekLogger::Severity::Information, "Terminating");
-
   return Status::success();
 }
 
@@ -224,7 +223,10 @@ ZeekAgent::initializeServiceManager(IZeekServiceManager::Ref &service_manager) {
       *service_manager.get(), virtual_database, getConfig(), getLogger());
 
   if (!status.succeeded()) {
-    throw status;
+    getLogger().logMessage(
+        IZeekLogger::Severity::Error,
+        "The EndpointSecurity tables could not be initialized: " +
+            status.message());
   }
 #endif
 
