@@ -1,5 +1,4 @@
 build
-build-*
 osquery
-package_build
+package
 
