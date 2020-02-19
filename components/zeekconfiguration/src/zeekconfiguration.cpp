@@ -11,6 +11,12 @@
 
 namespace zeek {
 namespace {
+#if defined(ZEEK_AGENT_ENABLE_OSQUERY_SUPPORT)
+#define REQUIRE_OSQUERY_EXTENSIONS_SOCKET true
+#else
+#define REQUIRE_OSQUERY_EXTENSIONS_SOCKET false
+#endif
+
 // clang-format off
 const ConfigurationChecker::Constraints kConfigurationConstraints = {
   {
@@ -108,7 +114,7 @@ const ConfigurationChecker::Constraints kConfigurationConstraints = {
       ConfigurationChecker::MemberConstraint::Type::String,
       false,
       "",
-      true
+      REQUIRE_OSQUERY_EXTENSIONS_SOCKET
     }
   }
 };
