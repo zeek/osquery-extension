@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.16.3)
 
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "")
+  set(CMAKE_SYSTEM_NAME "${CMAKE_HOST_SYSTEM_NAME}")
+endif()
+
 if("${CMAKE_BUILD_TYPE}" STREQUAL "")
   set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Build type" FORCE)
 endif()

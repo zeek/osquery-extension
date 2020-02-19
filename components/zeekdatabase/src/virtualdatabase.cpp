@@ -1,6 +1,7 @@
 #include "virtualdatabase.h"
 #include "sqlite_utils.h"
 #include "virtualtablemodule.h"
+#include "zeektablelisttableplugin.h"
 
 #include <unordered_map>
 #include <unordered_set>
@@ -13,9 +14,13 @@ struct VirtualDatabase::PrivateData final {
 
   std::unordered_map<std::string, VirtualTableModule::Ref>
       registered_module_list;
+
+  IVirtualTable::Ref zeek_table_list_table_plugin;
 };
 
 VirtualDatabase::~VirtualDatabase() {
+  unregisterTable("zeek_table_list");
+
   sqlite3_close(d->sqlite_database);
   d->sqlite_database = nullptr;
 }
@@ -69,6 +74,11 @@ Status VirtualDatabase::registerTable(IVirtualTable::Ref table) {
   d->registered_module_list.insert(
       {table_name, std::move(virtual_table_module)});
 
+  auto &zeek_table_list_plugin = *static_cast<ZeekTableListTablePlugin *>(
+      d->zeek_table_list_table_plugin.get());
+
+  zeek_table_list_plugin.updateTableList(virtualTableList());
+
   return Status::success();
 }
 
@@ -103,6 +113,12 @@ Status VirtualDatabase::unregisterTable(const std::string &name) {
   }
 
   d->registered_module_list.erase(table_it);
+
+  auto &zeek_table_list_plugin = *static_cast<ZeekTableListTablePlugin *>(
+      d->zeek_table_list_table_plugin.get());
+
+  zeek_table_list_plugin.updateTableList(virtualTableList());
+
   return Status::success();
 }
 
@@ -169,6 +185,18 @@ Status VirtualDatabase::query(QueryOutput &output,
 VirtualDatabase::VirtualDatabase() : d(new PrivateData) {
   if (sqlite3_open(":memory:", &d->sqlite_database) != SQLITE_OK) {
     throw Status::failure("Failed to create the SQLite database");
+  }
+
+  auto status =
+      ZeekTableListTablePlugin::create(d->zeek_table_list_table_plugin);
+
+  if (!status.succeeded()) {
+    throw status;
+  }
+
+  status = registerTable(d->zeek_table_list_table_plugin);
+  if (!status.succeeded()) {
+    throw status;
   }
 }
 

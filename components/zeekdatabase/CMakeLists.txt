@@ -14,6 +14,9 @@ function(zeekAgentComponentsDatabase)
 
     src/sqlite_utils.h
     src/sqlite_utils.cpp
+
+    src/zeektablelisttableplugin.h
+    src/zeektablelisttableplugin.cpp
   )
 
   target_include_directories("${PROJECT_NAME}"
