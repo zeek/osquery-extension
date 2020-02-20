@@ -98,7 +98,7 @@ buildZeekAgent() {
   executeCommand \
     "Configuring the packaging project" \
     "package" \
-    cmake -G Ninja -DZEEK_AGENT_ZEEK_COMPATIBILITY:STRING="${zeek_version}" -DZEEK_AGENT_INSTALL_PATH:PATH="${install_destination}" -DCMAKE_INSTALL_PREFIX:PATH="${install_prefix}" ../packaging
+    cmake -G Ninja -DZEEK_AGENT_INSTALL_PATH:PATH="${install_destination}" -DCMAKE_INSTALL_PREFIX:PATH="${install_prefix}" ../packaging
 
   executeCommand \
     "Generating packages" \

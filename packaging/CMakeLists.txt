@@ -121,6 +121,20 @@ function(zeekAgentPackaging)
     FILES ${sample_config_list}
     DESTINATION "/etc/zeek-agent"
   )
+
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    set(service_definition "${CMAKE_CURRENT_BINARY_DIR}/zeek-agent.service")
+
+    configure_file(
+      "${CMAKE_CURRENT_SOURCE_DIR}/config/zeek-agent.service.inc"
+      "${service_definition}"
+    )
+
+    install(
+      FILES "${service_definition}"
+      DESTINATION "lib/systemd/system"
+    )
+  endif()
 endfunction()
 
 include(CPack)
