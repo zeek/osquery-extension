@@ -8,6 +8,8 @@ function(zeekAgentTables)
   elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
     add_subdirectory("endpointsecurity")
   endif()
+
+  add_subdirectory("host_information")
 endfunction()
 
 zeekAgentTables()

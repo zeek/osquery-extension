@@ -56,5 +56,11 @@ private:
   /// \param service_manager Where the service manager object is stored
   /// \return A Status object
   Status initializeServiceManager(IZeekServiceManager::Ref &service_manager);
+
+  /// \brief Initializes internal tables
+  Status initializeTables();
+
+  /// \brief deinitializes internal tables
+  void deinitializeTables();
 };
 } // namespace zeek

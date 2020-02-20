@@ -16,14 +16,14 @@
 #include <zeek/endpointsecurityservicefactory.h>
 #endif
 
-#include <zeek/uuid.h>
-
-#include <unistd.h>
+#include <zeek/ihostinformationtableplugin.h>
+#include <zeek/system_identifiers.h>
 
 namespace zeek {
 struct ZeekAgent::PrivateData final {
   IVirtualDatabase::Ref virtual_database;
   std::string host_identifier;
+  std::vector<IVirtualTable::Ref> internal_table_list;
 };
 
 Status ZeekAgent::create(Ref &obj) {
@@ -43,19 +43,15 @@ Status ZeekAgent::create(Ref &obj) {
   }
 }
 
-ZeekAgent::~ZeekAgent() {}
+ZeekAgent::~ZeekAgent() { deinitializeTables(); }
 
 Status ZeekAgent::exec(std::atomic_bool &terminate) {
   auto status = getHostUUID(d->host_identifier);
   if (!status.succeeded()) {
-    std::vector<char> buffer(1024);
-    gethostname(buffer.data(), buffer.size());
-    buffer.push_back(0);
-
     getLogger().logMessage(IZeekLogger::Severity::Error,
                            status.message() + ". Using the hostname instead");
 
-    d->host_identifier = buffer.data();
+    d->host_identifier = getSystemHostname();
   }
 
   getLogger().logMessage(IZeekLogger::Severity::Information,
@@ -184,6 +180,11 @@ ZeekAgent::ZeekAgent() : d(new PrivateData) {
   if (!status.succeeded()) {
     throw status;
   }
+
+  status = initializeTables();
+  if (!status.succeeded()) {
+    throw status;
+  }
 }
 
 Status ZeekAgent::initializeConnection(ZeekConnection::Ref &zeek_connection) {
@@ -247,9 +248,33 @@ ZeekAgent::initializeServiceManager(IZeekServiceManager::Ref &service_manager) {
         IZeekLogger::Severity::Error,
         "The EndpointSecurity tables could not be initialized: " +
             status.message());
+
+    throw status;
   }
 #endif
 
   return Status::success();
+}
+
+Status ZeekAgent::initializeTables() {
+  IVirtualTable::Ref table_ref;
+  auto status = IHostInformationTablePlugin::create(table_ref);
+  if (!status.succeeded()) {
+    return status;
+  }
+
+  status = d->virtual_database->registerTable(table_ref);
+  if (!status.succeeded()) {
+    return status;
+  }
+
+  d->internal_table_list.push_back(table_ref);
+  return Status::success();
+}
+
+void ZeekAgent::deinitializeTables() {
+  for (const auto &table : d->internal_table_list) {
+    d->virtual_database->unregisterTable(table->name());
+  }
 }
 } // namespace zeek

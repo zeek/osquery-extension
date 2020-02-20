@@ -1,7 +1,10 @@
-#include <zeek/uuid.h>
+#include <zeek/system_identifiers.h>
+
+#include <vector>
 
 #if defined(__linux__)
 #include <fstream>
+#include <unistd.h>
 
 #elif defined(__APPLE__)
 #include <unistd.h>
@@ -61,5 +64,17 @@ Status getHostUUID(std::string &uuid) {
 
   uuid = std::move(uuid_value);
   return Status::success();
+}
+
+std::string getSystemHostname() {
+#if defined(__linux__) || defined(__APPLE__)
+  std::vector<char> buffer(1024);
+  gethostname(buffer.data(), buffer.size());
+  buffer.push_back(0);
+
+  return buffer.data();
+#else
+#error Unsupported platform
+#endif
 }
 } // namespace zeek

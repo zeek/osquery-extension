@@ -5,8 +5,8 @@ function(zeekAgentComponentsUtils)
   add_library("${PROJECT_NAME}"
     include/zeek/status.h
 
-    include/zeek/uuid.h
-    src/uuid.cpp
+    include/zeek/system_identifiers.h
+    src/system_identifiers.cpp
   )
 
   target_include_directories("${PROJECT_NAME}"
