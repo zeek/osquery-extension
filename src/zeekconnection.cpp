@@ -31,14 +31,6 @@ const std::string kBrokerTopic_PRE_INDIVIDUALS{"/zeek/zeek-agent/host/"};
 const std::string kBrokerTopic_PRE_GROUPS{"/zeek/zeek-agent/group/"};
 const std::string kBrokerEvent_HOST_NEW{"zeek_agent::host_new"};
 
-std::string getSystemHostname() {
-  std::vector<char> buffer(1024);
-  gethostname(buffer.data(), buffer.size());
-
-  buffer.push_back(0);
-  return buffer.data();
-}
-
 template <typename FieldType, int field_index>
 FieldType getZeekEventField(const broker::zeek::Event &event) {
   const auto &argument_list = event.args();
@@ -67,6 +59,7 @@ struct ZeekConnection::PrivateData final {
       : broker_endpoint(new broker::endpoint(std::move(config))),
         status_subscriber(broker_endpoint->make_status_subscriber(true)) {}
 
+  std::string host_identifier;
   std::unique_ptr<broker::endpoint> broker_endpoint;
 
   broker::status_subscriber status_subscriber;
@@ -78,11 +71,11 @@ struct ZeekConnection::PrivateData final {
   DifferentialContext differential_context;
 };
 
-Status ZeekConnection::create(Ref &obj) {
+Status ZeekConnection::create(Ref &obj, const std::string &host_identifier) {
   try {
     obj.reset();
 
-    auto ptr = new ZeekConnection();
+    auto ptr = new ZeekConnection(host_identifier);
     obj.reset(ptr);
 
     return Status::success();
@@ -241,7 +234,7 @@ void ZeekConnection::publishTaskOutput(
   // clang-format off
   broker::vector message_header(
     {
-      broker::data(getHostIdentifier()),
+      broker::data(d->host_identifier),
       broker::data(broker::data(broker::enum_value{trigger})),
       broker::data(cookie)
     }
@@ -377,8 +370,10 @@ Status ZeekConnection::waitForActivity(bool &ready) {
   return Status::success();
 }
 
-ZeekConnection::ZeekConnection()
+ZeekConnection::ZeekConnection(const std::string &host_identifier)
     : d(new PrivateData(getBrokerConfiguration())) {
+
+  d->host_identifier = host_identifier;
 
   const auto &server_address = getConfig().serverAddress();
   auto server_port = getConfig().serverPort();
@@ -433,7 +428,7 @@ ZeekConnection::ZeekConnection()
   }
 
   status =
-      createSubscription(kBrokerTopic_PRE_INDIVIDUALS + getHostIdentifier());
+      createSubscription(kBrokerTopic_PRE_INDIVIDUALS + d->host_identifier);
 
   if (!status.succeeded()) {
     throw status;
@@ -458,7 +453,7 @@ ZeekConnection::ZeekConnection()
 
     {
       broker::data(caf::to_string(d->broker_endpoint->node_id())),
-      broker::data(getHostIdentifier()),
+      broker::data(d->host_identifier),
       joined_group_list,
       broker::data(ZEEK_AGENT_VERSION),
       broker::data(kZeekAgentEdition)
@@ -681,11 +676,6 @@ Status ZeekConnection::computeDifferentials(
   std::swap(old_differential_data, differential_data);
 
   return Status::success();
-}
-
-std::string ZeekConnection::getHostIdentifier() {
-  static const std::string kSystemHostname = getSystemHostname();
-  return kSystemHostname;
 }
 
 Status

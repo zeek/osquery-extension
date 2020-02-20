@@ -3,6 +3,9 @@
 #include "logger.h"
 #include "zeekconnection.h"
 
+#include <chrono>
+#include <thread>
+
 #if defined(ZEEK_AGENT_ENABLE_OSQUERY_SUPPORT)
 #include <zeek/iosqueryinterface.h>
 #endif
@@ -13,12 +16,14 @@
 #include <zeek/endpointsecurityservicefactory.h>
 #endif
 
-#include <chrono>
-#include <thread>
+#include <zeek/uuid.h>
+
+#include <unistd.h>
 
 namespace zeek {
 struct ZeekAgent::PrivateData final {
   IVirtualDatabase::Ref virtual_database;
+  std::string host_identifier;
 };
 
 Status ZeekAgent::create(Ref &obj) {
@@ -41,8 +46,23 @@ Status ZeekAgent::create(Ref &obj) {
 ZeekAgent::~ZeekAgent() {}
 
 Status ZeekAgent::exec(std::atomic_bool &terminate) {
+  auto status = getHostUUID(d->host_identifier);
+  if (!status.succeeded()) {
+    std::vector<char> buffer(1024);
+    gethostname(buffer.data(), buffer.size());
+    buffer.push_back(0);
+
+    getLogger().logMessage(IZeekLogger::Severity::Error,
+                           status.message() + ". Using the hostname instead");
+
+    d->host_identifier = buffer.data();
+  }
+
+  getLogger().logMessage(IZeekLogger::Severity::Information,
+                         "Host identifier: " + d->host_identifier);
+
   IZeekServiceManager::Ref service_manager;
-  auto status = initializeServiceManager(service_manager);
+  status = initializeServiceManager(service_manager);
   if (!status.succeeded()) {
     return status;
   }
@@ -169,7 +189,7 @@ ZeekAgent::ZeekAgent() : d(new PrivateData) {
 Status ZeekAgent::initializeConnection(ZeekConnection::Ref &zeek_connection) {
   zeek_connection.reset();
 
-  auto status = ZeekConnection::create(zeek_connection);
+  auto status = ZeekConnection::create(zeek_connection, d->host_identifier);
   if (!status.succeeded()) {
     return status;
   }

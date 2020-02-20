@@ -21,8 +21,10 @@ public:
 
   /// \brief Factory method
   /// \param obj Where the created object is stored
+  /// \param host_identifier The UUID of the system, or the hostname
+  ///                        if it was not possible to acquire it
   /// \return A Status object
-  static Status create(Ref &obj);
+  static Status create(Ref &obj, const std::string &host_identifier);
 
   /// \brief Destructor
   ~ZeekConnection();
@@ -55,7 +57,9 @@ public:
 
 private:
   /// \brief Constructor
-  ZeekConnection();
+  /// \param host_identifier The UUID of the system, or the hostname
+  ///                        if it was not possible to acquire it
+  ZeekConnection(const std::string &host_identifier);
 
   /// \return The broker configuration
   broker::configuration getBrokerConfiguration();
@@ -148,9 +152,6 @@ public:
   static Status
   computeDifferentials(DifferentialContext &context, DifferentialOutput &output,
                        const QueryScheduler::TaskOutput &task_output);
-
-  /// \return The unique host identifier
-  static std::string getHostIdentifier();
 
   /// \brief Creates a new scheduled task from the given broker event
   /// \param task Where the new task is stored
