@@ -1,5 +1,5 @@
 [Unit]
-Description=Zeek Agent
+Description=Zeek Agent (standalone)
 After=network.target
 
 [Service]

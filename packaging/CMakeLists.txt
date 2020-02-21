@@ -24,9 +24,16 @@ set(CPACK_GENERATOR "TGZ")
 
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
   include("cmake/linux.cmake")
+
+elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+  set(CMAKE_INSTALL_PREFIX "/" CACHE PATH "Install prefix" FORCE)
+
+else()
+  message(FATAL_ERROR "Unsupported platform")
 endif()
 
 function(zeekAgentPackaging)
+  # Detect what has been built
   if("${ZEEK_AGENT_INSTALL_PATH}" STREQUAL "")
     message(FATAL_ERROR "The ZEEK_AGENT_INSTALL_PATH parameter is mandatory")
   endif()
@@ -49,6 +56,7 @@ function(zeekAgentPackaging)
   if(EXISTS "${standalone_zeek_agent_path}")
     message(STATUS "Found: Zeek Agent (standalone edition)")
     list(APPEND executable_file_list "${standalone_zeek_agent_path}")
+    set(standalone_zeek_agent_found true)
   else()
     message(WARNING "Not found: ${standalone_zeek_agent_path}")
   endif()
@@ -57,6 +65,7 @@ function(zeekAgentPackaging)
   if(EXISTS "${osquery_zeek_agent_path}")
     message(STATUS "Found: Zeek Agent (osquery edition)")
     list(APPEND executable_file_list "${osquery_zeek_agent_path}")
+    set(osquery_zeek_agent_found true)
   else()
     message(WARNING "Not found: ${osquery_zeek_agent_path}")
   endif()
@@ -65,6 +74,7 @@ function(zeekAgentPackaging)
     message(FATAL_ERROR "The specified ZEEK_AGENT_INSTALL_PATH value is not valid")
   endif()
 
+  # Documentation
   set(documentation_path "${ZEEK_AGENT_INSTALL_PATH}/${CMAKE_INSTALL_PREFIX}/share/doc/zeek-agent")
   if(EXISTS "${documentation_path}/index.html")
     message(STATUS "Found: Zeek Agent documentation")
@@ -75,6 +85,7 @@ function(zeekAgentPackaging)
     )
   endif()
 
+  # Main program file
   if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux" OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     set(install_directive "FILES")
 
@@ -107,6 +118,7 @@ function(zeekAgentPackaging)
     message(FATAL_ERROR "Unsupported platform")
   endif()
 
+  # Configuration files
   set(sample_config_list
     "config/config.sample.json"
   )
@@ -122,20 +134,61 @@ function(zeekAgentPackaging)
     DESTINATION "/etc/zeek-agent"
   )
 
-  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
-    set(service_definition "${CMAKE_CURRENT_BINARY_DIR}/zeek-agent.service")
+  # Service-related files
+  if(standalone_zeek_agent_found)
+    list(APPEND service_name_list "zeek-agent")
+  endif()
+
+  if(osquery_zeek_agent_found)
+    list(APPEND service_name_list "zeek-agent-osquery")
+  endif()
+
+  foreach(service_name ${service_name_list})
+    if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+      set(service_definition_file_name "${service_name}.service")
+
+    elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+      set(service_definition_file_name "com.corelight.${service_name}.plist")
+
+    else()
+      message(FATAL_ERROR "Unsupported platform")
+    endif()
+
+    set(service_template "${CMAKE_CURRENT_SOURCE_DIR}/config/${service_definition_file_name}.inc")
+    set(service_definition "${CMAKE_CURRENT_BINARY_DIR}/${service_definition_file_name}")
 
     configure_file(
-      "${CMAKE_CURRENT_SOURCE_DIR}/config/zeek-agent.service.inc"
+      "${service_template}"
       "${service_definition}"
     )
 
+    list(APPEND service_definition_files "${service_definition}")
+  endforeach()
+
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    set(service_config_folder "lib/systemd/system")
+
+  elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+    set(service_config_folder "/Library/LaunchDaemons")
+
+  else()
+    message(FATAL_ERROR "Unsupported platform")
+  endif()
+
+  install(
+    FILES ${service_definition_files}
+    DESTINATION "${service_config_folder}"
+  )
+
+  # Readme, for macOS
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
     install(
-      FILES "${service_definition}"
-      DESTINATION "lib/systemd/system"
+      FILES "${CMAKE_CURRENT_SOURCE_DIR}/docs/macOS_README.txt"
+      DESTINATION "."
     )
   endif()
 endfunction()
 
 include(CPack)
 zeekAgentPackaging()
+
