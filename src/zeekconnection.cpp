@@ -19,17 +19,17 @@ const std::string kZeekAgentEdition{"osquery"};
 const std::string kZeekAgentEdition{"standalone"};
 #endif
 
-const std::string kHostSubscribeEvent{"zeek_agent::host_subscribe"};
-const std::string kHostUnsubscribeEvent{"zeek_agent::host_unsubscribe"};
-const std::string kHostJoinEvent{"zeek_agent::host_join"};
-const std::string kHostLeaveEvent{"zeek_agent::host_leave"};
-const std::string kHostExecuteEvent{"zeek_agent::host_execute"};
+const std::string kHostSubscribeEvent{"ZeekAgent::host_subscribe"};
+const std::string kHostUnsubscribeEvent{"ZeekAgent::host_unsubscribe"};
+const std::string kHostJoinEvent{"ZeekAgent::host_join"};
+const std::string kHostLeaveEvent{"ZeekAgent::host_leave"};
+const std::string kHostExecuteEvent{"ZeekAgent::host_execute"};
 
 const std::string kBrokerTopic_ALL{"/zeek/zeek-agent/hosts"};
 const std::string kBrokerTopic_ANNOUNCE{"/zeek/zeek-agent/host_announce"};
 const std::string kBrokerTopic_PRE_INDIVIDUALS{"/zeek/zeek-agent/host/"};
 const std::string kBrokerTopic_PRE_GROUPS{"/zeek/zeek-agent/group/"};
-const std::string kBrokerEvent_HOST_NEW{"zeek_agent::host_new"};
+const std::string kBrokerEvent_HOST_NEW{"ZeekAgent::host_new"};
 
 template <typename FieldType, int field_index>
 FieldType getZeekEventField(const broker::zeek::Event &event) {
@@ -304,16 +304,16 @@ Status ZeekConnection::processTaskOutput(
       return status;
     }
 
-    publishTaskOutput("zeek_agent::ADD", task_output.response_topic,
+    publishTaskOutput("ZeekAgent::ADD", task_output.response_topic,
                       task_output.response_event, task_output.cookie,
                       differential_output.added_row_list);
 
-    publishTaskOutput("zeek_agent::REMOVE", task_output.response_topic,
+    publishTaskOutput("ZeekAgent::REMOVE", task_output.response_topic,
                       task_output.response_event, task_output.cookie,
                       differential_output.removed_row_list);
 
   } else {
-    publishTaskOutput("zeek_agent::SNAPSHOT", task_output.response_topic,
+    publishTaskOutput("ZeekAgent::SNAPSHOT", task_output.response_topic,
                       task_output.response_event, task_output.cookie,
                       task_output.query_output);
   }
