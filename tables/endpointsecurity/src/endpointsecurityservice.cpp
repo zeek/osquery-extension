@@ -3,6 +3,8 @@
 
 #include <algorithm>
 #include <cassert>
+#include <chrono>
+#include <thread>
 
 #include <zeek/endpointsecurityservicefactory.h>
 #include <zeek/iendpointsecurityconsumer.h>
@@ -22,12 +24,16 @@ struct EndpointSecurityService::PrivateData final {
   IZeekConfiguration &configuration;
   IZeekLogger &logger;
 
-  zeek::IEndpointSecurityConsumer::Ref endpoint_sec_consumer;
+  IEndpointSecurityConsumer::Ref endpoint_sec_consumer;
 
   IVirtualTable::Ref process_events_table;
 };
 
 EndpointSecurityService::~EndpointSecurityService() {
+  if (!d->process_events_table) {
+    return;
+  }
+
   auto status =
       d->virtual_database.unregisterTable(d->process_events_table->name());
 
@@ -39,10 +45,15 @@ const std::string &EndpointSecurityService::name() const {
 }
 
 Status EndpointSecurityService::exec(std::atomic_bool &terminate) {
-  auto &process_events_table_impl =
-      *static_cast<ProcessEventsTablePlugin *>(d->process_events_table.get());
-
   while (!terminate) {
+    if (!d->process_events_table) {
+      std::this_thread::sleep_for(std::chrono::seconds(1U));
+      continue;
+    }
+
+    auto &process_events_table_impl =
+        *static_cast<ProcessEventsTablePlugin *>(d->process_events_table.get());
+
     IEndpointSecurityConsumer::EventList event_list;
     d->endpoint_sec_consumer->getEvents(event_list);
 
@@ -67,11 +78,16 @@ EndpointSecurityService::EndpointSecurityService(
     IZeekLogger &logger)
     : d(new PrivateData(virtual_database, configuration, logger)) {
 
-  auto status = zeek::IEndpointSecurityConsumer::create(
-      d->endpoint_sec_consumer, logger, configuration);
+  auto status = IEndpointSecurityConsumer::create(d->endpoint_sec_consumer,
+                                                  logger, configuration);
 
   if (!status.succeeded()) {
-    throw status;
+    d->logger.logMessage(IZeekLogger::Severity::Error,
+                         "Failed to connect to the EndpointSecurity API. The "
+                         "process_events table will not be enabled. Error: " +
+                             status.message());
+
+    return;
   }
 
   status = ProcessEventsTablePlugin::create(d->process_events_table,
