@@ -31,7 +31,7 @@ jobs:
 
     - name: Select the osquery version
       id: osquery_version
-      run: echo ::set-output name=VALUE::4.1.1
+      run: echo ::set-output name=VALUE::4.2.0
 
     - name: Select the sanitizers setting
       id: sanitizers_settings
@@ -46,6 +46,11 @@ jobs:
       run: |
         git clone --branch "${{ steps.osquery_version.outputs.VALUE }}" https://github.com/osquery/osquery osquery
         mkdir -p osquery/.git/modules
+
+    - name: Update the bzip2 submodule
+      run: |
+        sed -i.bak 's=https://sourceware.org/git/bzip2.git=https://github.com/osquery/third-party-bzip2=g' "osquery/.gitmodules"
+        rm osquery/.gitmodules.bak
 
     - name: Generate the cache key
       id: cache_key
