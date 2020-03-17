@@ -274,12 +274,13 @@ SCENARIO("AudispConsumer record parsers", "[AudispConsumer]") {
   }
 
   GIVEN("a valid AUDIT_SOCKADDR record") {
-    static const std::string kSaddrValue01{"020004D2000000000000000000000000"};
+    static const std::string kSaddrValue01{"02001F907F0000010000000000000000"};
     static const std::string kSaddrValue02{
         "01002F6465762F6C6F6700000000000000000000000000000000000000000000000000"
         "0000000000000000000000000000000000000000000000000000000000000000000000"
         "0000000000000000000000000000000000000000000000000000000000000000000000"
         "0000000000"};
+
     static const std::string kSaddrValue03{
         "01002F7661722F72756E2F6E7363642F736F636B657400002306C4227E7F0000000000"
         "000000000000FE5967FC7F000040DBF4227E7F0000C7FD5967FC7F000070E08B2DE955"
@@ -296,8 +297,8 @@ SCENARIO("AudispConsumer record parsers", "[AudispConsumer]") {
     // clang-format off
     static const AudispConsumer::SockaddrRecordData kExpectedAuditSockaddrRecord01 = {
       2,
-      1234,
-      "0.0.0.0"
+      8080,
+      "127.0.0.1"
     };
     // clang-format on
 

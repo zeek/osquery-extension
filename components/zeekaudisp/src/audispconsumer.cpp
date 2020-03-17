@@ -558,11 +558,9 @@ Status AudispConsumer::parseSockaddrRecord(SockaddrRecordData &data,
     output.family = static_cast<std::int64_t>(addr.sin_family);
     output.port = static_cast<std::int64_t>(htons(addr.sin_port));
 
-    auto numeric_address = htonl(addr.sin_addr.s_addr);
-
     std::uint8_t numeric_address_bytes[4];
-    std::memcpy(numeric_address_bytes, &numeric_address,
-                sizeof(numeric_address));
+    std::memcpy(numeric_address_bytes, &addr.sin_addr.s_addr,
+                sizeof(numeric_address_bytes));
 
     for (std::size_t i = 0U; i < 4U; ++i) {
       output.address += std::to_string(numeric_address_bytes[i]);

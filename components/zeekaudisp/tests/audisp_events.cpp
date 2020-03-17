@@ -69,16 +69,16 @@ SCENARIO("AudispConsumer event parsers", "[AudispConsumer]") {
     }
   }
 
-  GIVEN("a full connect event") {
+  GIVEN("a bind() event") {
     // clang-format off
-    static const std::string kExecveEvent = "type=SYSCALL msg=audit(1573593461.740:303): arch=c000003e syscall=49 success=yes exit=0 a0=3 a1=56287aa33290 a2=10 a3=7ffdbe219c8c items=0 ppid=14019 pid=14223 auid=4294967295 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts2 ses=4294967295 comm=\"nc\" exe=\"/bin/nc.openbsd\" key=(null)\ntype=SOCKADDR msg=audit(1573593461.740:303): saddr=0200270F000000000000000000000000\ntype=PROCTITLE msg=audit(1573593461.740:303): proctitle=6E63002D6C00302E302E302E30002D700039393939\n";
+    static const std::string kBindEvent = "type=SYSCALL msg=audit(1573593461.740:303): arch=c000003e syscall=49 success=yes exit=0 a0=3 a1=56287aa33290 a2=10 a3=7ffdbe219c8c items=0 ppid=14019 pid=14223 auid=4294967295 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts2 ses=4294967295 comm=\"nc\" exe=\"/bin/nc.openbsd\" key=(null)\ntype=SOCKADDR msg=audit(1573593461.740:303): saddr=0200270F000000000000000000000000\ntype=PROCTITLE msg=audit(1573593461.740:303): proctitle=6E63002D6C00302E302E302E30002D700039393939\n";
     // clang-format on
 
     IAudispConsumer::Ref audisp_consumer;
 
     {
       IAudispProducer::Ref audisp_producer;
-      auto status = MockedAudispProducer::create(audisp_producer, kExecveEvent);
+      auto status = MockedAudispProducer::create(audisp_producer, kBindEvent);
       REQUIRE(status.succeeded());
 
       status = AudispConsumer::createWithProducer(audisp_consumer,
@@ -105,7 +105,7 @@ SCENARIO("AudispConsumer event parsers", "[AudispConsumer]") {
 
         REQUIRE(event_list.size() >= 1U);
 
-        // Make sure all records that must be present in an execve system call
+        // Make sure all records that must be present in a bind() system call
         // have been included. Check a value from each record
         const auto &first_event = event_list.at(0);
         REQUIRE(!first_event.execve_data.has_value());
