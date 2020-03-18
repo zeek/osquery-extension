@@ -10,6 +10,7 @@
 
 #include <broker/endpoint.hh>
 #include <broker/zeek.hh>
+#include <zeek/system_identifiers.h>
 
 namespace zeek {
 namespace {
@@ -59,6 +60,7 @@ struct ZeekConnection::PrivateData final {
       : broker_endpoint(new broker::endpoint(std::move(config))),
         status_subscriber(broker_endpoint->make_status_subscriber(true)) {}
 
+  std::string peer_name;
   std::string host_identifier;
   std::unique_ptr<broker::endpoint> broker_endpoint;
 
@@ -373,6 +375,7 @@ Status ZeekConnection::waitForActivity(bool &ready) {
 ZeekConnection::ZeekConnection(const std::string &host_identifier)
     : d(new PrivateData(getBrokerConfiguration())) {
 
+  d->peer_name = getSystemHostname();
   d->host_identifier = host_identifier;
 
   const auto &server_address = getConfig().serverAddress();
@@ -453,6 +456,7 @@ ZeekConnection::ZeekConnection(const std::string &host_identifier)
 
     {
       broker::data(caf::to_string(d->broker_endpoint->node_id())),
+      broker::data(d->peer_name),
       broker::data(d->host_identifier),
       joined_group_list,
       broker::data(ZEEK_AGENT_VERSION),
