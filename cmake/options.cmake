@@ -48,6 +48,13 @@ if(TARGET osqueryd)
     set(ZEEK_AGENT_ENABLE_LIBCPP OFF CACHE BOOL "Only supported on Linux" FORCE)
   endif()
 
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows" AND "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+    # osquery still depends on some of the legacy pre-built binaries shipped by the previous upstream.
+    # Keep debug builds disabled until the Windows build is fully migrated to the 'source' dependency
+    # layer
+    message(FATAL_ERROR "osquery does not support Debug builds on Windows")
+  endif()
+
 else()
   if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux" OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
     set(ZEEK_AGENT_TOOLCHAIN_PATH "" CACHE PATH "Toolchain path")

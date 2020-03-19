@@ -6,8 +6,25 @@ function(zeekAgentDocumentation)
     "components"
     "src"
   )
+  
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    set(optional_hints
+      HINTS
+        "$ENV{PROGRAMFILES}\\doxygen\\bin"
+        "$ENV{PROGRAMFILES\(X86\)}\\doxygen\\bin"
+    )
 
-  find_program(doxygen_executable_path doxygen)
+    message(WARNING "HINTS: ${optional_hints}")
+
+    set(executable_extension ".exe")
+  endif()
+
+  find_program(
+    doxygen_executable_path
+    "doxygen${executable_extension}"
+    ${optional_hints}
+  )
+
   if("${doxygen_executable_path}" STREQUAL "doxygen_executable_path-NOTFOUND")
     message(FATAL_ERROR "zeek-agent: The Doxygen command was not found")
   endif()

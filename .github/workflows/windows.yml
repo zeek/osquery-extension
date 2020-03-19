@@ -1,0 +1,87 @@
+name: Windows
+
+on:
+  push:
+    branches:
+      - '*'
+
+    tags:
+      - 'v*'
+
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  windows_build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [windows-2019]
+        build_type: [Release]
+        zeek_version: ['3.1']
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Select the CMake version
+      id: cmake_version
+      run: echo "::set-output name=VALUE::3.16.4"
+
+    - name: Select the osquery version
+      id: osquery_version
+      run: echo "::set-output name=VALUE::4.2.0"
+
+    - name: Select the Doxygen version
+      id: doxygen_version
+      run: echo "::set-output name=VALUE::1.8.17"
+
+    - name: Acquire the osquery source code
+      run: git clone --branch "${{ steps.osquery_version.outputs.VALUE }}" https://github.com/osquery/osquery osquery
+
+    - name: Update the bzip2 submodule
+      run: (Get-Content .\osquery\.gitmodules).replace('https://sourceware.org/git/bzip2.git', 'https://github.com/osquery/third-party-bzip2') | Set-Content .\osquery\.gitmodules
+
+    - name: Generate the cache key
+      id: cache_key
+      run: echo "::set-output name=VALUE::build_${{ matrix.os }}_type-${{ matrix.build_type }}_cmake-${{ steps.cmake_version.outputs.VALUE }}_zeek-version-${{ matrix.zeek_version }}"
+
+    - name: Create the build folders
+      run: |
+        mkdir build
+        mkdir downloads
+
+    - name: Synchronize the submodules
+      run: git submodule sync --recursive
+
+    - name: Update the submodules
+      run: git submodule update --init --recursive
+
+    - name: Install CMake
+      id: cmake_installer
+      run: |
+        Invoke-WebRequest -Uri "https://github.com/Kitware/CMake/releases/download/v${{ steps.cmake_version.outputs.VALUE }}/cmake-${{ steps.cmake_version.outputs.VALUE }}-win64-x64.msi" -OutFile "downloads\cmake-v${{ steps.cmake_version.outputs.VALUE }}.msi"
+        msiexec.exe /i "downloads\cmake-v${{ steps.cmake_version.outputs.VALUE }}.msi" /QN | Out-Null
+        echo "::set-output name=CMAKE_BINARY::C:\Program Files\CMake\bin\cmake.exe"
+
+    - name: Install Doxygen
+      id: doxygen_installer
+      run: |
+        Invoke-WebRequest -Uri "http://doxygen.nl/files/doxygen-${{ steps.doxygen_version.outputs.VALUE }}-setup.exe" -OutFile "downloads\doxygen-${{ steps.doxygen_version.outputs.VALUE }}-setup.exe"
+        downloads\doxygen-${{ steps.doxygen_version.outputs.VALUE }}-setup.exe /SP /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /LOG=doxygen_install_log.txt | Out-Null
+
+    - name: Doxygen install log
+      run: Get-Content doxygen_install_log.txt
+
+    - name: Link the Zeek Agent source folder inside the osquery source tree
+      run: cmd /C mklink /J osquery\external\extension_zeek-agent .
+
+    - name: Configure the project
+      run: cd build ; & '${{ steps.cmake_installer.outputs.CMAKE_BINARY }}' -DCMAKE_INSTALL_PREFIX:PATH='C:\Program Files' -DCMAKE_BUILD_TYPE:STRING=${{ matrix.build_type }} -DZEEK_AGENT_ENABLE_DOCUMENTATION:BOOL=true -DZEEK_AGENT_ENABLE_INSTALL:BOOL=true -DZEEK_AGENT_ENABLE_TESTS:BOOL=true -DZEEK_AGENT_ENABLE_SANITIZERS:BOOL=false -DZEEK_AGENT_ZEEK_COMPATIBILITY:STRING=${{ matrix.zeek_version }} ..\osquery
+
+    - name: Build the project
+      run: cd build ; & '${{ steps.cmake_installer.outputs.CMAKE_BINARY }}' --build . --config ${{ matrix.build_type }} -j 4
+
+    - name: Run the tests
+      run: cd build ; & '${{ steps.cmake_installer.outputs.CMAKE_BINARY }}' --build . --target zeek_agent_tests -j 4

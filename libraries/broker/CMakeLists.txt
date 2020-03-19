@@ -46,6 +46,9 @@ function(zeekAgentLibrariesBroker)
       zeek_agent_libraries_settings
     )
 
+    # Prevent issues by defining WIN32_LEAN_AND_MEAN where it is missing
+    target_compile_definitions("${libcaf_target}" PRIVATE WIN32_LEAN_AND_MEAN)
+
     target_link_libraries(thirdparty_actorframework INTERFACE
       "${libcaf_target}"
     )
@@ -68,6 +71,9 @@ function(zeekAgentLibrariesBroker)
   target_link_libraries(broker_static
     zeek_agent_libraries_settings
   )
+
+  # Prevent issues by defining WIN32_LEAN_AND_MEAN where it is missing in Broker
+  target_compile_definitions(broker_static PRIVATE WIN32_LEAN_AND_MEAN)
 
   # It does not seem like the Broker project is correctly attaching the include directories
   # to the target; issue a warning and manually fix the build
