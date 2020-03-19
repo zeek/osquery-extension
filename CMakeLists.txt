@@ -3,6 +3,10 @@ cmake_minimum_required(VERSION 3.16.3)
 include("cmake/options.cmake")
 project("zeek-agent")
 
+if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "")
+  set(CMAKE_SYSTEM_PROCESSOR "${CMAKE_HOST_SYSTEM_PROCESSOR}")
+endif()
+
 include("cmake/version.cmake")
 include("cmake/flags.cmake")
 include("cmake/utils.cmake")

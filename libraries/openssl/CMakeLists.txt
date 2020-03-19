@@ -46,7 +46,12 @@ function(zeekAgentLibrariesOpenSSL)
         thirdparty_zlib
     )
 
-    set(lib_folder_name "lib64")
+    if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64")
+      set(lib_folder_name "lib")
+    else()
+      set(lib_folder_name "lib64")
+    endif()
+
     set(lib_extension "a")
 
   elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")

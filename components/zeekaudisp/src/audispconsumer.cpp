@@ -244,8 +244,12 @@ AudispConsumer::parseSyscallRecord(std::optional<SyscallRecordData> &data,
   std::unordered_map<int, SyscallRecordData::Type> kNumberToSyscallType = {
     { __NR_execve, SyscallRecordData::Type::Execve },
     { __NR_execveat, SyscallRecordData::Type::ExecveAt },
+
+ #ifndef __aarch64__
     { __NR_fork, SyscallRecordData::Type::Fork },
     { __NR_vfork, SyscallRecordData::Type::VFork },
+ #endif
+
     { __NR_clone, SyscallRecordData::Type::Clone },
     { __NR_bind, SyscallRecordData::Type::Bind },
     { __NR_connect, SyscallRecordData::Type::Connect },
