@@ -6,8 +6,13 @@ function(zeekAgentLibrariesSqlite)
   target_link_libraries(thirdparty_sqlite PRIVATE
     zeek_agent_c_settings
     zeek_agent_libraries_settings
-    dl
   )
+
+  if(NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    target_link_libraries(thirdparty_sqlite PRIVATE
+      dl
+    )
+  endif()
 endfunction()
 
 zeekAgentLibrariesSqlite()

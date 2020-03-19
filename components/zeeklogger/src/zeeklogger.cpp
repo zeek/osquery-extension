@@ -10,13 +10,15 @@
 #include <sstream>
 #include <unordered_map>
 
+#include <zeek/time.h>
+
 namespace zeek {
 namespace {
 std::string getCurrentTimestamp(const std::string &format) {
   auto current_time = std::time(nullptr);
 
   struct tm current_time_tm {};
-  localtime_r(&current_time, &current_time_tm);
+  getLocalTime(&current_time, &current_time_tm);
 
   std::stringstream buffer;
   buffer << std::put_time(&current_time_tm, format.c_str());

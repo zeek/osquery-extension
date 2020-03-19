@@ -47,6 +47,7 @@ function(zeekAgentLibrariesOpenSSL)
     )
 
     set(lib_folder_name "lib64")
+    set(lib_extension "a")
 
   elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
     ExternalProject_Add(thirdparty_openssl_builder
@@ -79,6 +80,50 @@ function(zeekAgentLibrariesOpenSSL)
     )
 
     set(lib_folder_name "lib")
+    set(lib_extension "a")
+
+  elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    set(CMAKE_PREFIX_PATH "C:\\Strawberry\\perl\\bin")
+    find_package(Perl REQUIRED)
+
+    get_filename_component(perl_bin_path "${PERL_EXECUTABLE}" DIRECTORY)
+    string(REPLACE "/" "\\\\" perl_executable_path "${PERL_EXECUTABLE}")
+
+    ExternalProject_Add(thirdparty_openssl_builder
+      DOWNLOAD_DIR
+        "${CMAKE_CURRENT_BINARY_DIR}"
+
+      URL
+        "https://www.openssl.org/source/openssl-${openssl_version}.tar.gz"
+
+      CONFIGURE_COMMAND 
+        "${CMAKE_COMMAND}" -E env "${PERL_EXECUTABLE}" Configure VC-WIN64A no-ssl2 no-ssl3 no-asm no-shared
+                                                       no-weak-ssl-ciphers zlib-dynamic enable-cms
+                                                       "--with-zlib-include=${zlib_include_path}"
+                                                       "--with-zlib-lib=$<TARGET_FILE:thirdparty_zlib>"
+
+      BUILD_COMMAND
+        cmake -E env "cmd.exe" "/C" "nmake PERL=${perl_executable_path}"
+
+      INSTALL_COMMAND
+        "${CMAKE_COMMAND}" -E make_directory "${install_directory}/lib" &&
+        "${CMAKE_COMMAND}" -E copy "./libssl.lib" "${install_directory}/lib" &&
+        "${CMAKE_COMMAND}" -E copy "./libcrypto.lib" "${install_directory}/lib" &&
+        "${CMAKE_COMMAND}" -E make_directory "${install_directory}/include" &&
+        "${CMAKE_COMMAND}" -E copy_directory "./include/openssl" "${install_directory}/include/openssl" &&
+        "${CMAKE_COMMAND}" -E remove "${install_directory}/include/openssl/__DECC_INCLUDE_PROLOGUE.h"
+                                     "${install_directory}/include/openssl/__DECC_INCLUDE_EPILOGUE.h"
+                                     "${install_directory}/include/openssl/opensslconf.h.in"
+
+      BUILD_IN_SOURCE
+        true
+
+      DEPENDS
+        thirdparty_zlib
+    )
+
+    set(lib_folder_name "lib")
+    set(lib_extension "lib")
 
   else()
     message(FATAL_ERROR "Unsupported system")
@@ -90,7 +135,7 @@ function(zeekAgentLibrariesOpenSSL)
       "${install_directory}/include"
 
     IMPORTED_LOCATION
-      "${install_directory}/${lib_folder_name}/libcrypto.a"
+      "${install_directory}/${lib_folder_name}/libcrypto.${lib_extension}"
   )
 
   add_dependencies(thirdparty_openssl_libcrypto
@@ -103,7 +148,7 @@ function(zeekAgentLibrariesOpenSSL)
       "${install_directory}/include"
 
     IMPORTED_LOCATION
-      "${install_directory}/${lib_folder_name}/libssl.a"
+      "${install_directory}/${lib_folder_name}/libssl.${lib_extension}"
   )
 
   add_dependencies(thirdparty_openssl_libssl
@@ -115,6 +160,12 @@ function(zeekAgentLibrariesOpenSSL)
     thirdparty_openssl_libcrypto
     thirdparty_openssl_libssl
   )
+
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    target_link_libraries(thirdparty_openssl INTERFACE
+      Crypt32
+    )
+  endif()
 endfunction()
 
 zeekAgentLibrariesOpenSSL()

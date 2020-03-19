@@ -5,11 +5,10 @@
 
 #include <unordered_map>
 
-#include <poll.h>
-#include <unistd.h>
-
 #include <broker/endpoint.hh>
 #include <broker/zeek.hh>
+
+#include <zeek/network.h>
 #include <zeek/system_identifiers.h>
 
 namespace zeek {
@@ -343,10 +342,12 @@ Status ZeekConnection::waitForActivity(bool &ready) {
   for (const auto &subscriber_p : d->subscriber_map) {
     const auto &subscriber = subscriber_p.second;
 
+    auto socket = static_cast<SOCKET>(subscriber.fd());
+
     // clang-format off
     poll_fd_list.push_back(
       {
-        subscriber.fd(),
+        socket,
         POLLIN | POLLERR,
         0
       }
@@ -354,7 +355,8 @@ Status ZeekConnection::waitForActivity(bool &ready) {
     // clang-format on
   }
 
-  auto poll_err = poll(poll_fd_list.data(), poll_fd_list.size(), 1000);
+  auto poll_err =
+      poll(poll_fd_list.data(), static_cast<nfds_t>(poll_fd_list.size()), 1000);
 
   if (poll_err == 0) {
     return Status::success();

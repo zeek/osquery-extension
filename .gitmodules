@@ -7,9 +7,6 @@
 [submodule "libraries/rapidjson/src"]
 	path = libraries/rapidjson/src
 	url = https://github.com/Tencent/rapidjson.git
-[submodule "libraries/broker/src"]
-	path = libraries/broker/src
-	url = https://github.com/zeek/broker
 [submodule "libraries/xxhash/src"]
 	path = libraries/xxhash/src
 	url = https://github.com/Cyan4973/xxHash
@@ -21,4 +18,7 @@
 	url = https://github.com/madler/zlib
 [submodule "libraries/broker-legacy/src"]
 	path = libraries/broker-legacy/src
+	url = https://github.com/zeek/broker
+[submodule "libraries/broker/src"]
+	path = libraries/broker/src
 	url = https://github.com/zeek/broker

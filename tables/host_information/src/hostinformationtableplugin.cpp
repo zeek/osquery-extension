@@ -5,10 +5,98 @@
 
 #include <broker/version.hh>
 
+#if defined(__linux__) || defined(__APPLE__)
 #include <errno.h>
 #include <sys/utsname.h>
 
+#elif defined(WIN32)
+#include <Windows.h>
+#include <tchar.h>
+
+#else
+#error Unsupported platform
+#endif
+
 namespace zeek {
+namespace {
+#if defined(__linux__) || defined(__APPLE__)
+void getOSInformation(HostInformationTablePlugin::Row &row) {
+  struct utsname uname_info {};
+  if (uname(&uname_info) >= 0) {
+    row["os_name"] = uname_info.sysname;
+    row["os_version"] = uname_info.version;
+    row["os_release"] = uname_info.release;
+    row["os_machine"] = uname_info.machine;
+
+  } else {
+    row["os_name"] = "";
+    row["os_version"] = "";
+    row["os_release"] = "";
+    row["os_machine"] = "";
+  }
+}
+
+#elif defined(WIN32)
+void getOSInformation(HostInformationTablePlugin::Row &row) {
+  row["os_name"] = "Windows";
+  row["os_version"] = "";
+
+  SYSTEM_INFO system_info{};
+  GetNativeSystemInfo(&system_info);
+
+  switch (system_info.wProcessorArchitecture) {
+  case PROCESSOR_ARCHITECTURE_AMD64:
+    row["os_machine"] = "AMD64";
+    break;
+
+  case PROCESSOR_ARCHITECTURE_ARM:
+    row["os_machine"] = "ARM";
+    break;
+
+  case PROCESSOR_ARCHITECTURE_ARM64:
+    row["os_machine"] = "ARM64";
+    break;
+
+  case PROCESSOR_ARCHITECTURE_IA64:
+    row["os_machine"] = "IA64";
+    break;
+
+  case PROCESSOR_ARCHITECTURE_UNKNOWN:
+  default:
+    row["os_machine"] = "UNKNOWN";
+    break;
+  }
+
+  static const auto kWindowsVersionKey =
+      _T("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion");
+  static const auto kReleaseIdValueName = _T("ReleaseId");
+
+  DWORD value_size{0};
+  if (RegGetValue(HKEY_LOCAL_MACHINE, kWindowsVersionKey, kReleaseIdValueName,
+                  RRF_RT_REG_SZ, nullptr, nullptr,
+                  &value_size) != ERROR_SUCCESS) {
+
+    row["os_release"] = "";
+    return;
+  }
+
+  std::string buffer(static_cast<std::size_t>(value_size), '\0');
+  if (RegGetValue(HKEY_LOCAL_MACHINE, kWindowsVersionKey, kReleaseIdValueName,
+                  RRF_RT_REG_SZ, nullptr, &buffer[0],
+                  &value_size) != ERROR_SUCCESS) {
+
+    row["os_release"] = "";
+    return;
+  }
+
+  row["os_release"] = std::move(buffer);
+}
+
+#else
+#error Unsupported platform
+#endif
+} // namespace
+
 struct HostInformationTablePlugin::PrivateData final {};
 
 HostInformationTablePlugin::~HostInformationTablePlugin() {}
@@ -40,18 +128,7 @@ HostInformationTablePlugin::schema() const {
 
 Status HostInformationTablePlugin::generateRowList(RowList &row_list) {
   Row row;
-
-  struct utsname uname_info {};
-  if (uname(&uname_info) != 0) {
-    return Status::failure(
-        "The uname() system function has failed with errno " +
-        std::to_string(errno));
-  }
-
-  row["os_name"] = uname_info.sysname;
-  row["os_version"] = uname_info.version;
-  row["os_release"] = uname_info.release;
-  row["os_machine"] = uname_info.machine;
+  getOSInformation(row);
 
   std::string system_version;
   auto status = getSystemVersion(system_version);

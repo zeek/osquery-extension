@@ -22,7 +22,15 @@ function(zeekAgentTablesHostInformationTablePlugin)
 
     target_link_libraries(zeek_host_information_table PUBLIC
       "-framework Cocoa"
+
     )
+  elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    target_sources(zeek_host_information_table PRIVATE
+      src/osversion_windows.cpp
+    )
+
+  else()
+    message(FATAL_ERROR "Unsupported platform")
   endif()
 
   target_include_directories(zeek_host_information_table PRIVATE

@@ -10,20 +10,31 @@ endif()
 
 option(ZEEK_AGENT_ENABLE_TESTS "Set to ON to build the tests")
 option(ZEEK_AGENT_ENABLE_INSTALL "Set to ON to generate the install directives")
-option(ZEEK_AGENT_ENABLE_SANITIZERS "Set to ON to enable sanitizers. Only available when compiling with Clang")
+
+if(NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  option(ZEEK_AGENT_ENABLE_SANITIZERS "Set to ON to enable sanitizers. Only available when compiling with Clang")
+else()
+  set(ZEEK_AGENT_ENABLE_SANITIZERS OFF CACHE BOOL "Sanitizers are not supported on Windows" FORCE)
+endif()
+
 option(ZEEK_AGENT_ENABLE_DOCUMENTATION "Set to ON to generate the Doxygen documentation")
 
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
   set(ZEEK_AGENT_CODESIGN_IDENTITY "" CACHE STRING "Codesign identity")
 endif()
 
-set(ZEEK_AGENT_ZEEK_COMPATIBILITY "3.1" CACHE STRING "Build with either '3.0' or '3.1' Zeek server compatibility")
-if("${ZEEK_AGENT_ZEEK_COMPATIBILITY}" STREQUAL "3.0")
-  message(STATUS "zeek-agent: Building with Zeek 3.0 compatibility")
-elseif("${ZEEK_AGENT_ZEEK_COMPATIBILITY}" STREQUAL "3.1")
-  message(STATUS "zeek-agent: Building with Zeek >= 3.1 compatibility")
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  set(ZEEK_AGENT_ZEEK_COMPATIBILITY "3.1" CACHE STRING "Latest Broker version is forced when building on Windows" FORCE)
+
 else()
-  message(FATAL_ERROR "zeek-agent: Invalid value specified for ZEEK_AGENT_ZEEK_COMPATIBILITY: ${ZEEK_AGENT_ZEEK_COMPATIBILITY}. Valid values: 3.0, 3.1")
+  set(ZEEK_AGENT_ZEEK_COMPATIBILITY "3.1" CACHE STRING "Build with either '3.0' or '3.1' Zeek server compatibility")
+  if("${ZEEK_AGENT_ZEEK_COMPATIBILITY}" STREQUAL "3.0")
+    message(STATUS "zeek-agent: Building with Zeek 3.0 compatibility")
+  elseif("${ZEEK_AGENT_ZEEK_COMPATIBILITY}" STREQUAL "3.1")
+    message(STATUS "zeek-agent: Building with Zeek >= 3.1 compatibility")
+  else()
+    message(FATAL_ERROR "zeek-agent: Invalid value specified for ZEEK_AGENT_ZEEK_COMPATIBILITY: ${ZEEK_AGENT_ZEEK_COMPATIBILITY}. Valid values: 3.0, 3.1")
+  endif()
 endif()
 
 if(TARGET osqueryd)

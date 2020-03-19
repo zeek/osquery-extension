@@ -2,9 +2,18 @@ cmake_minimum_required(VERSION 3.14)
 
 function(zeekAgentLibraries)
   add_library(zeek_agent_libraries_settings INTERFACE)
-  target_compile_options(zeek_agent_libraries_settings INTERFACE
-    -Wno-error
-  )
+
+  if("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang")
+    target_compile_options(zeek_agent_libraries_settings INTERFACE
+      -Wno-error
+    )
+
+  else()
+    target_compile_options(zeek_agent_libraries_settings INTERFACE
+      /W0
+      /WX-
+    )
+  endif()
 
   if("${ZEEK_AGENT_ZEEK_COMPATIBILITY}" STREQUAL "3.0")
     add_subdirectory("broker-legacy")

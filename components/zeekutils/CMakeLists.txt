@@ -7,6 +7,12 @@ function(zeekAgentComponentsUtils)
 
     include/zeek/system_identifiers.h
     src/system_identifiers.cpp
+
+    include/zeek/time.h
+    src/time.cpp
+
+    include/zeek/network.h
+    src/network.cpp
   )
 
   target_include_directories("${PROJECT_NAME}"
@@ -20,6 +26,12 @@ function(zeekAgentComponentsUtils)
   target_link_libraries("${PROJECT_NAME}" PUBLIC
     zeek_agent_cxx_settings
   )
+
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    target_link_libraries("${PROJECT_NAME}" PUBLIC
+      Ws2_32
+    )
+  endif()
 endfunction()
 
 zeekAgentComponentsUtils()
