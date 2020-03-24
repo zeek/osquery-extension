@@ -20,7 +20,11 @@ set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${ZEEK_AGENT_VERSION}-${PACKA
 set(CPACK_PACKAGE_RELOCATABLE ON)
 set(CPACK_SET_DESTDIR ON)
 
-set(CPACK_GENERATOR "TGZ")
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  set(CPACK_GENERATOR "ZIP")
+else()
+  set(CPACK_GENERATOR "TGZ")
+endif()
 
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
   include("cmake/linux.cmake")
@@ -28,8 +32,8 @@ if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
 elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
   set(CMAKE_INSTALL_PREFIX "/" CACHE PATH "Install prefix" FORCE)
 
-else()
-  message(FATAL_ERROR "Unsupported platform")
+elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  set(CMAKE_INSTALL_PREFIX "/Program Files/Corelight/Zeek Agent" CACHE PATH "Install prefix" FORCE)
 endif()
 
 function(zeekAgentPackaging)
@@ -38,9 +42,13 @@ function(zeekAgentPackaging)
     message(FATAL_ERROR "The ZEEK_AGENT_INSTALL_PATH parameter is mandatory")
   endif()
 
-  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux" OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     set(prefix_folder_name "${CMAKE_INSTALL_PREFIX}/bin")
     set(application_name_suffix "")
+
+  elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    set(prefix_folder_name "bin")
+    set(application_name_suffix ".exe")
 
   elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
     set(prefix_folder_name "Applications")
@@ -129,63 +137,70 @@ function(zeekAgentPackaging)
     )
   endif()
 
-  install(
-    FILES ${sample_config_list}
-    DESTINATION "/etc/zeek-agent"
-  )
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    install(
+      FILES ${sample_config_list}
+      DESTINATION "${CMAKE_INSTALL_PREFIX}/etc"
+    )
+
+  else()
+    install(
+      FILES ${sample_config_list}
+      DESTINATION "/etc/zeek-agent"
+    )
+  endif()
 
   # Service-related files
-  if(standalone_zeek_agent_found)
-    list(APPEND service_name_list "zeek-agent")
-  endif()
+  if(NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    if(standalone_zeek_agent_found)
+      list(APPEND service_name_list "zeek-agent")
+    endif()
 
-  if(osquery_zeek_agent_found)
-    list(APPEND service_name_list "zeek-agent-osquery")
-  endif()
+    if(osquery_zeek_agent_found)
+      list(APPEND service_name_list "zeek-agent-osquery")
+    endif()
 
-  foreach(service_name ${service_name_list})
+    foreach(service_name ${service_name_list})
+      if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+        set(service_definition_file_name "${service_name}.service")
+
+      elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+        set(service_definition_file_name "com.corelight.${service_name}.plist")
+      endif()
+
+      set(service_template "${CMAKE_CURRENT_SOURCE_DIR}/config/${service_definition_file_name}.inc")
+      set(service_definition "${CMAKE_CURRENT_BINARY_DIR}/${service_definition_file_name}")
+
+      configure_file(
+        "${service_template}"
+        "${service_definition}"
+      )
+
+      list(APPEND service_definition_files "${service_definition}")
+    endforeach()
+
     if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
-      set(service_definition_file_name "${service_name}.service")
+      set(service_config_folder "lib/systemd/system")
 
     elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
-      set(service_definition_file_name "com.corelight.${service_name}.plist")
+      set(service_config_folder "/Library/LaunchDaemons")
 
     else()
       message(FATAL_ERROR "Unsupported platform")
     endif()
 
-    set(service_template "${CMAKE_CURRENT_SOURCE_DIR}/config/${service_definition_file_name}.inc")
-    set(service_definition "${CMAKE_CURRENT_BINARY_DIR}/${service_definition_file_name}")
-
-    configure_file(
-      "${service_template}"
-      "${service_definition}"
-    )
-
-    list(APPEND service_definition_files "${service_definition}")
-  endforeach()
-
-  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
-    set(service_config_folder "lib/systemd/system")
-
-  elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
-    set(service_config_folder "/Library/LaunchDaemons")
-
-  else()
-    message(FATAL_ERROR "Unsupported platform")
-  endif()
-
-  install(
-    FILES ${service_definition_files}
-    DESTINATION "${service_config_folder}"
-  )
-
-  # Readme, for macOS
-  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
     install(
-      FILES "${CMAKE_CURRENT_SOURCE_DIR}/docs/macOS_README.txt"
-      DESTINATION "."
+      FILES ${service_definition_files}
+      DESTINATION "${service_config_folder}"
     )
+
+    # Readme, for macOS
+    if("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+      install(
+        FILES "${CMAKE_CURRENT_SOURCE_DIR}/docs/macOS_README.txt"
+        DESTINATION "."
+      )
+    endif()
   endif()
 endfunction()
 

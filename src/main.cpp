@@ -8,8 +8,7 @@
 #include <signal.h>
 
 #elif defined(WIN32)
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+#include <zeek/network.h>
 
 #else
 #error Unsupported platform

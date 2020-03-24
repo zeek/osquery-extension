@@ -78,7 +78,7 @@ jobs:
       run: cmd /C mklink /J osquery\external\extension_zeek-agent .
 
     - name: Configure the project
-      run: cd build ; & '${{ steps.cmake_installer.outputs.CMAKE_BINARY }}' -DCMAKE_INSTALL_PREFIX:PATH='C:\Program Files' -DCMAKE_BUILD_TYPE:STRING=${{ matrix.build_type }} -DZEEK_AGENT_ENABLE_DOCUMENTATION:BOOL=true -DZEEK_AGENT_ENABLE_INSTALL:BOOL=true -DZEEK_AGENT_ENABLE_TESTS:BOOL=true -DZEEK_AGENT_ENABLE_SANITIZERS:BOOL=false -DZEEK_AGENT_ZEEK_COMPATIBILITY:STRING=${{ matrix.zeek_version }} ..\osquery
+      run: cd build ; & '${{ steps.cmake_installer.outputs.CMAKE_BINARY }}' -DCMAKE_VERBOSE_MAKEFILE:BOOL=true -DCMAKE_INSTALL_PREFIX:PATH='C:\Program Files' -DCMAKE_BUILD_TYPE:STRING=${{ matrix.build_type }} -DZEEK_AGENT_ENABLE_DOCUMENTATION:BOOL=true -DZEEK_AGENT_ENABLE_INSTALL:BOOL=true -DZEEK_AGENT_ENABLE_TESTS:BOOL=true -DZEEK_AGENT_ENABLE_SANITIZERS:BOOL=false -DZEEK_AGENT_ZEEK_COMPATIBILITY:STRING=${{ matrix.zeek_version }} ..\osquery
 
     - name: Build the project
       run: cd build ; & '${{ steps.cmake_installer.outputs.CMAKE_BINARY }}' --build . --config ${{ matrix.build_type }} -j 4

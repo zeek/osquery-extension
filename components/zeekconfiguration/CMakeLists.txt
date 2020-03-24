@@ -33,6 +33,24 @@ function(zeekAgentComponentsConfiguration)
       thirdparty_rapidjson
   )
 
+  # Prevent rapidjson from breaking the build
+  add_library(thirdparty_rapidjson_warning_settings INTERFACE)
+  if("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang")
+    target_compile_options(thirdparty_rapidjson_warning_settings INTERFACE
+      -Wno-error
+    )
+
+  else()
+    target_compile_options(thirdparty_rapidjson_warning_settings INTERFACE
+      /W0
+      /WX-
+    )
+  endif()
+
+  target_link_libraries("${PROJECT_NAME}" PRIVATE
+    thirdparty_rapidjson_warning_settings
+  )
+
   generateZeekAgentTest(
     SOURCE_TARGET
       "${PROJECT_NAME}"

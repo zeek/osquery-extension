@@ -18,8 +18,9 @@ Status prepareSqliteStatement(SqliteStatement &obj, sqlite3 *database,
   obj.reset();
 
   sqlite3_stmt *sql_stmt{nullptr};
-  auto err = sqlite3_prepare_v2(database, query.c_str(), query.size(),
-                                &sql_stmt, nullptr);
+  auto err =
+      sqlite3_prepare_v2(database, query.c_str(),
+                         static_cast<int>(query.size()), &sql_stmt, nullptr);
 
   if (err != SQLITE_OK) {
     return Status::failure("Failed to prepare the SQLite statement");
@@ -69,7 +70,7 @@ Status validateSqliteName(const std::string &name) {
 Status allocateSqliteMemory(Sqlite3MemoryRef &obj, std::size_t size) {
   obj.reset();
 
-  auto ptr = sqlite3_malloc(size);
+  auto ptr = sqlite3_malloc(static_cast<int>(size));
   if (ptr == nullptr) {
     return Status::failure("Memory allocation failure");
   }
