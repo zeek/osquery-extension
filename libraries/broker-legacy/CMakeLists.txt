@@ -17,7 +17,7 @@ function(zeekAgentLibrariesBroker)
 
   # CAF and Broker may not compile correctly with debug symbols enabled without increasing
   # the section limit
-  add_library(thirdparty_caf_broker_flags)
+  add_library(thirdparty_caf_broker_flags INTERFACE)
   if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows" AND ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug" OR "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo"))
     target_compile_options(thirdparty_caf_broker_flags PRIVATE
       /bigobj

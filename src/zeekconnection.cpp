@@ -338,36 +338,43 @@ Status ZeekConnection::processTaskOutputList(
 Status ZeekConnection::waitForActivity(bool &ready) {
   ready = false;
 
-  std::vector<pollfd> poll_fd_list;
+  fd_set fd_list;
+  FD_ZERO(&fd_list);
+
+  int highest_socket_fd = -1;
+
   for (const auto &subscriber_p : d->subscriber_map) {
     const auto &subscriber = subscriber_p.second;
 
-    auto socket = static_cast<SOCKET>(subscriber.fd());
+    auto socket = subscriber.fd();
+    FD_SET(socket, &fd_list);
 
-    // clang-format off
-    poll_fd_list.push_back(
-      {
-        socket,
-        POLLIN | POLLERR,
-        0
-      }
-    );
-    // clang-format on
+    highest_socket_fd = std::max(highest_socket_fd, socket);
   }
 
-  auto poll_err =
-      poll(poll_fd_list.data(), static_cast<nfds_t>(poll_fd_list.size()), 1000);
+  struct timeval timeout {};
+  timeout.tv_sec = 1;
 
-  if (poll_err == 0) {
+  auto select_err =
+      select(highest_socket_fd + 1, &fd_list, nullptr, nullptr, &timeout);
+  if (select_err == 0) {
     return Status::success();
 
-  } else if (poll_err == -1) {
-    if (errno == EINTR) {
+  } else if (select_err == -1) {
+#ifdef WIN32
+    auto error_code = WSAGetLastError();
+    auto eintr_value = WSAEINTR;
+#else
+    auto error_code = errno;
+    auto eintr_value = EINTR;
+#endif
+
+    if (error_code == eintr_value) {
       return Status::success();
     }
 
     return Status::failure("poll() has failed with error " +
-                           std::to_string(errno));
+                           std::to_string(error_code));
   }
 
   ready = true;

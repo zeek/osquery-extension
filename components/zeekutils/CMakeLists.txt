@@ -12,7 +12,6 @@ function(zeekAgentComponentsUtils)
     src/time.cpp
 
     include/zeek/network.h
-    src/network.cpp
   )
 
   target_include_directories("${PROJECT_NAME}"

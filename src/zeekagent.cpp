@@ -100,7 +100,8 @@ Status ZeekAgent::exec(std::atomic_bool &terminate) {
 
       if (!status.succeeded()) {
         getLogger().logMessage(IZeekLogger::Severity::Error,
-                               "The connection has been lost");
+                               "The connection has been lost: " +
+                                   status.message());
 
         zeek_connection.reset();
 
