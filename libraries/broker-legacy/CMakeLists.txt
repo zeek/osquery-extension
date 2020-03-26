@@ -15,6 +15,15 @@ function(zeekAgentLibrariesBroker)
   # an empty make_unique.hh header that will get included instead of the
   # original one.
 
+  # CAF and Broker may not compile correctly with debug symbols enabled without increasing
+  # the section limit
+  add_library(thirdparty_caf_broker_flags)
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows" AND ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug" OR "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo"))
+    target_compile_options(thirdparty_caf_broker_flags PRIVATE
+      /bigobj
+    )
+  endif()
+
   generateActorFramework()
   generateBroker()
 endfunction()
@@ -165,6 +174,7 @@ function(generateActorFramework)
 
     PRIVATE
       zeek_agent_libraries_settings
+      thirdparty_caf_broker_flags
   )
 
   set(caf_io_root "${library_root}/libcaf_io")
@@ -228,6 +238,7 @@ function(generateActorFramework)
 
     PRIVATE
       zeek_agent_libraries_settings
+      thirdparty_caf_broker_flags
   )
 
   set(caf_openssl_root "${library_root}/libcaf_openssl")
@@ -260,6 +271,7 @@ function(generateActorFramework)
 
     PRIVATE
       zeek_agent_libraries_settings
+      thirdparty_caf_broker_flags
   )
 
   add_library(thirdparty_actorframework INTERFACE)
@@ -268,6 +280,7 @@ function(generateActorFramework)
     thirdparty_caf_core
     thirdparty_caf_io
     thirdparty_caf_openssl
+    thirdparty_caf_broker_flags
   )
 endfunction()
 
@@ -319,6 +332,7 @@ function(generateBroker)
 
     PRIVATE
       zeek_agent_libraries_settings
+      thirdparty_caf_broker_flags
   )
 
   target_include_directories(thirdparty_broker PRIVATE

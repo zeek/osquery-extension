@@ -86,6 +86,16 @@ function(zeekAgentLibrariesBroker)
       "${broker_include_dirs}"
     )
   endif()
+
+  # CAF and Broker may not compile correctly with debug symbols enabled without increasing
+  # the section limit
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows" AND ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug" OR "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo"))
+    foreach(library libcaf_core_static libcaf_io_static libcaf_openssl_static broker_static)
+      target_compile_options("${library}" PRIVATE
+        /bigobj
+      )
+    endforeach()
+  endif()
 endfunction()
 
 zeekAgentLibrariesBroker()
