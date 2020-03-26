@@ -11,13 +11,13 @@
 #include <uuid/uuid.h>
 
 #elif defined(WIN32)
-#include <zeek/network.h>
 #include <tchar.h>
+#include <zeek/network.h>
 
 #else
 #error Unsupported platform
 #endif
-
+#include <iostream>
 namespace zeek {
 namespace {
 // 16-bytes + 4 separators
@@ -59,6 +59,7 @@ Status getHostUUID(std::string &uuid) {
 #elif defined(WIN32)
   static const auto kCryptographyKeyPath =
       _T("SOFTWARE\\Microsoft\\Cryptography");
+
   static const auto kMachineGuidValueName = _T("MachineGuid");
 
   DWORD value_size{0};
@@ -69,13 +70,15 @@ Status getHostUUID(std::string &uuid) {
     return Status::failure("Failed to access the MachineGuid registry key");
   }
 
-  uuid.resize(static_cast<std::size_t>(value_size));
+  std::vector<char> buffer(value_size + 1, 0);
   if (RegGetValue(HKEY_LOCAL_MACHINE, kCryptographyKeyPath,
-                  kMachineGuidValueName, RRF_RT_REG_SZ, nullptr, &uuid[0],
+                  kMachineGuidValueName, RRF_RT_REG_SZ, nullptr, buffer.data(),
                   &value_size) != ERROR_SUCCESS) {
 
     return Status::failure("Failed to read the MachineGuid registry key");
   }
+
+  uuid_value = buffer.data();
 
 #else
 #error Unsupported platform
