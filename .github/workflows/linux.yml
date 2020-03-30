@@ -27,7 +27,7 @@ jobs:
 
     - name: Select the osquery-toolchain version
       id: osquery_toolchain_version
-      run: echo ::set-output name=VALUE::1.0.0
+      run: echo ::set-output name=VALUE::1.1.0
 
     - name: Select the CMake version
       id: cmake_version
@@ -97,7 +97,7 @@ jobs:
       id: osquery_toolchain_installer
       run: |
         if [ ! -f downloads/osquery-toolchain.tar.xz ] ; then
-          curl -L "https://github.com/osquery/osquery-toolchain/releases/download/${{ steps.osquery_toolchain_version.outputs.VALUE }}/osquery-toolchain-${{ steps.osquery_toolchain_version.outputs.VALUE }}.tar.xz" -o downloads/osquery-toolchain.tar.xz
+          curl -L "https://github.com/osquery/osquery-toolchain/releases/download/${{ steps.osquery_toolchain_version.outputs.VALUE }}/osquery-toolchain-${{ steps.osquery_toolchain_version.outputs.VALUE }}-x86_64.tar.xz" -o downloads/osquery-toolchain.tar.xz
         fi
 
         tar xf downloads/osquery-toolchain.tar.xz
