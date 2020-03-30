@@ -14,4 +14,10 @@ else()
     /WX
     /W4
   )
+
+  if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug" OR "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
+    list(APPEND ZEEK_AGENT_COMMON_COMPILATION_FLAGS
+      /BIGOBJ
+    )
+  endif()
 endif()
