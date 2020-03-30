@@ -19,8 +19,7 @@ SCENARIO("Basic VirtualDatabase operations", "[VirtualDatabase]") {
 
       THEN("the new virtual table can be queried") {
         IVirtualDatabase::QueryOutput query_output;
-        auto status =
-            virtual_database->query(query_output, "SELECT * FROM TestTable;");
+        status = virtual_database->query(query_output, "SELECT * FROM TestTable;");
 
         REQUIRE(status.succeeded());
         REQUIRE(!query_output.empty());
@@ -28,8 +27,6 @@ SCENARIO("Basic VirtualDatabase operations", "[VirtualDatabase]") {
     }
 
     WHEN("registering the same table twice") {
-      Status status;
-
       IVirtualTable::Ref test_table(
           new TestTable(TestTable::SchemaType::Valid));
 
@@ -38,18 +35,16 @@ SCENARIO("Basic VirtualDatabase operations", "[VirtualDatabase]") {
       REQUIRE(status.succeeded());
 
       {
-        IVirtualTable::Ref test_table(
+        IVirtualTable::Ref test_table2(
             new TestTable(TestTable::SchemaType::Valid));
 
-        status = virtual_database->registerTable(test_table);
+        status = virtual_database->registerTable(test_table2);
       }
 
       THEN("an error is returned") { REQUIRE(!status.succeeded()); }
     }
 
     WHEN("registering a table with an invalid schema") {
-      Status status;
-
       IVirtualTable::Ref test_table(
           new TestTable(TestTable::SchemaType::Invalid));
 
@@ -70,7 +65,7 @@ SCENARIO("Basic VirtualDatabase operations", "[VirtualDatabase]") {
       );
       // clang-format on
 
-      auto status = virtual_database->query(query_output,
+      status = virtual_database->query(query_output,
                                             "SELECT * FROM InvalidTableName;");
 
       THEN("an error is generated and no output is returned") {
@@ -85,7 +80,7 @@ SCENARIO("Basic VirtualDatabase operations", "[VirtualDatabase]") {
       IVirtualTable::Ref test_table(
           new TestTable(TestTable::SchemaType::Valid, kRowCount));
 
-      auto status = virtual_database->registerTable(test_table);
+      status = virtual_database->registerTable(test_table);
       REQUIRE(status.succeeded());
 
       IVirtualDatabase::QueryOutput query_output;
@@ -108,7 +103,7 @@ SCENARIO("Basic VirtualDatabase operations", "[VirtualDatabase]") {
           REQUIRE(std::holds_alternative<std::int64_t>(variant_value));
 
           auto integer_value = std::get<std::int64_t>(variant_value);
-          CHECK(integer_value == i);
+          CHECK(integer_value == static_cast<std::int64_t>(i));
 
           const auto &string_column = current_row.at(1U);
           REQUIRE(string_column.name == "string");
@@ -129,7 +124,7 @@ SCENARIO("Basic VirtualDatabase operations", "[VirtualDatabase]") {
       IVirtualTable::Ref test_table(
           new TestTable(TestTable::SchemaType::Valid, kRowCount));
 
-      auto status = virtual_database->registerTable(test_table);
+      status = virtual_database->registerTable(test_table);
       REQUIRE(status.succeeded());
 
       IVirtualDatabase::QueryOutput query_output;
@@ -149,8 +144,7 @@ SCENARIO("VirtualDatabase utilities", "[VirtualDatabase]") {
     TestTable invalid_table(TestTable::SchemaType::Invalid);
 
     WHEN("validating column types and names") {
-      auto status =
-          VirtualDatabase::validateTableSchema(invalid_table.schema());
+      auto status = VirtualDatabase::validateTableSchema(invalid_table.schema());
 
       THEN("an error is returned") { REQUIRE(!status.succeeded()); }
     }

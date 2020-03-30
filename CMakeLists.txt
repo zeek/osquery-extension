@@ -17,6 +17,7 @@ include("cmake/codesigning.cmake")
 function(zeekAgent)
   generateSettingsTarget()
   generateRootZeekTestTarget()
+  generateSystemDependenciesTarget()
 
   add_subdirectory("libraries")
   add_subdirectory("components")
@@ -64,6 +65,7 @@ function(zeekAgent)
       zeek_database
       zeek_configuration
       zeek_tables
+      zeek_system_dependencies
 
       thirdparty_broker
       thirdparty_xxhash
@@ -113,6 +115,15 @@ function(zeekAgent)
 
       tests/zeekconnection.cpp
   )
+endfunction()
+
+function(generateSystemDependenciesTarget)
+  add_library(zeek_system_dependencies INTERFACE)
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    target_link_libraries(zeek_system_dependencies INTERFACE
+      Crypt32.lib
+    )
+  endif()
 endfunction()
 
 configureCcache()

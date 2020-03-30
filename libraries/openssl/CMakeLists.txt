@@ -165,12 +165,6 @@ function(zeekAgentLibrariesOpenSSL)
     thirdparty_openssl_libcrypto
     thirdparty_openssl_libssl
   )
-
-  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-    target_link_libraries(thirdparty_openssl INTERFACE
-      Crypt32
-    )
-  endif()
 endfunction()
 
 zeekAgentLibrariesOpenSSL()

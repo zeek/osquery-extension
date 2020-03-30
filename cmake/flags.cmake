@@ -11,13 +11,9 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_C_COMPILER_ID}" STREQUA
 
 else()
   set(ZEEK_AGENT_COMMON_COMPILATION_FLAGS
+    /MT
     /WX
     /W4
+    /bigobj
   )
-
-  if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug" OR "${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
-    list(APPEND ZEEK_AGENT_COMMON_COMPILATION_FLAGS
-      /BIGOBJ
-    )
-  endif()
 endif()

@@ -96,7 +96,7 @@ Status ZeekAgent::exec(std::atomic_bool &terminate) {
     service_manager->checkServices();
 
     if (zeek_connection && query_scheduler) {
-      auto status = zeek_connection->processEvents();
+      status = zeek_connection->processEvents();
 
       if (!status.succeeded()) {
         getLogger().logMessage(IZeekLogger::Severity::Error,
@@ -112,7 +112,7 @@ Status ZeekAgent::exec(std::atomic_bool &terminate) {
       }
 
     } else {
-      auto status = initializeConnection(zeek_connection);
+      status = initializeConnection(zeek_connection);
 
       if (!status.succeeded()) {
         getLogger().logMessage(
@@ -125,8 +125,7 @@ Status ZeekAgent::exec(std::atomic_bool &terminate) {
 
       status = initializeQueryScheduler(query_scheduler);
       if (!status.succeeded()) {
-        auto status =
-            Status::failure("Failed to initialize the query scheduler");
+        status = Status::failure("Failed to initialize the query scheduler");
 
         getLogger().logMessage(IZeekLogger::Severity::Error, status.message());
         return status;
@@ -138,8 +137,8 @@ Status ZeekAgent::exec(std::atomic_bool &terminate) {
 
     auto task_output_list = query_scheduler->getTaskOutputList();
     if (!task_output_list.empty()) {
-      auto status =
-          zeek_connection->processTaskOutputList(std::move(task_output_list));
+      status = zeek_connection->processTaskOutputList(std::move(task_output_list));
+
       if (!status.succeeded()) {
         getLogger().logMessage(IZeekLogger::Severity::Error,
                                "Failed to process the task output list: " +

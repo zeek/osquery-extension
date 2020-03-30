@@ -179,6 +179,12 @@ function(generateActorFramework)
       "${CMAKE_CURRENT_SOURCE_DIR}/generated"
   )
 
+  if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    target_link_libraries(thirdparty_caf_core PUBLIC
+      Iphlpapi
+    )
+  endif()
+
   target_link_libraries(thirdparty_caf_core
     PUBLIC
       zeek_agent_cxx_settings
@@ -303,9 +309,6 @@ function(generateBroker)
     "${library_root}/src/version.cc"
     "${library_root}/src/time.cc"
     "${library_root}/src/status_subscriber.cc"
-    "${library_root}/src/broker-node.cc"
-    "${library_root}/src/config.hh.in"
-    "${library_root}/src/broker-pipe.cc"
     "${library_root}/src/publisher.cc"
     "${library_root}/src/network_info.cc"
     "${library_root}/src/detail/make_backend.cc"
