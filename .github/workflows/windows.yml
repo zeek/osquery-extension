@@ -33,24 +33,21 @@ jobs:
       id: osquery_version
       run: echo "::set-output name=VALUE::4.2.0"
 
-    - name: Select the Doxygen version
-      id: doxygen_version
-      run: echo "::set-output name=VALUE::1.8.17"
-
     - name: Acquire the osquery source code
       run: git clone --branch "${{ steps.osquery_version.outputs.VALUE }}" https://github.com/osquery/osquery osquery
 
-    - name: Update the bzip2 submodule
+    - name: Update the osquery/bzip2 submodule
       run: (Get-Content .\osquery\.gitmodules).replace('https://sourceware.org/git/bzip2.git', 'https://github.com/osquery/third-party-bzip2') | Set-Content .\osquery\.gitmodules
 
-    - name: Generate the cache key
-      id: cache_key
-      run: echo "::set-output name=VALUE::build_${{ matrix.os }}_type-${{ matrix.build_type }}_cmake-${{ steps.cmake_version.outputs.VALUE }}_zeek-version-${{ matrix.zeek_version }}"
+    - name: Update the osquery/OpenSSL 1.0.2t download link
+      run: (Get-Content .\osquery\libraries\cmake\formula\openssl\CMakeLists.txt).replace('https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz', 'https://www.openssl.org/source/old/1.0.2/openssl-1.0.2t.tar.gz') | Set-Content .\osquery\libraries\cmake\formula\openssl\CMakeLists.txt
 
     - name: Create the build folders
       run: |
         mkdir build
         mkdir downloads
+        mkdir install
+        mkdir package
 
     - name: Synchronize the submodules
       run: git submodule sync --recursive
@@ -65,23 +62,72 @@ jobs:
         msiexec.exe /i "downloads\cmake-v${{ steps.cmake_version.outputs.VALUE }}.msi" /QN | Out-Null
         echo "::set-output name=CMAKE_BINARY::C:\Program Files\CMake\bin\cmake.exe"
 
-    - name: Install Doxygen
-      id: doxygen_installer
-      run: |
-        Invoke-WebRequest -Uri "http://doxygen.nl/files/doxygen-${{ steps.doxygen_version.outputs.VALUE }}-setup.exe" -OutFile "downloads\doxygen-${{ steps.doxygen_version.outputs.VALUE }}-setup.exe"
-        downloads\doxygen-${{ steps.doxygen_version.outputs.VALUE }}-setup.exe /SP /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /LOG=doxygen_install_log.txt | Out-Null
-
-    - name: Doxygen install log
-      run: Get-Content doxygen_install_log.txt
-
     - name: Link the Zeek Agent source folder inside the osquery source tree
       run: cmd /C mklink /J osquery\external\extension_zeek-agent .
 
     - name: Configure the project
-      run: cd build ; & '${{ steps.cmake_installer.outputs.CMAKE_BINARY }}' -DCMAKE_VERBOSE_MAKEFILE:BOOL=true -DCMAKE_INSTALL_PREFIX:PATH='C:\Program Files' -DCMAKE_BUILD_TYPE:STRING=${{ matrix.build_type }} -DZEEK_AGENT_ENABLE_DOCUMENTATION:BOOL=true -DZEEK_AGENT_ENABLE_INSTALL:BOOL=true -DZEEK_AGENT_ENABLE_TESTS:BOOL=true -DZEEK_AGENT_ENABLE_SANITIZERS:BOOL=false -DZEEK_AGENT_ZEEK_COMPATIBILITY:STRING=${{ matrix.zeek_version }} ..\osquery
+      run: cd build ; & '${{ steps.cmake_installer.outputs.CMAKE_BINARY }}' -DCMAKE_VERBOSE_MAKEFILE:BOOL=true -DCMAKE_INSTALL_PREFIX:PATH='${{ env.GITHUB_WORKSPACE }}\install' -DCMAKE_BUILD_TYPE:STRING=${{ matrix.build_type }} -DZEEK_AGENT_ENABLE_DOCUMENTATION:BOOL=false -DZEEK_AGENT_ENABLE_INSTALL:BOOL=true -DZEEK_AGENT_ENABLE_TESTS:BOOL=true -DZEEK_AGENT_ENABLE_SANITIZERS:BOOL=false -DZEEK_AGENT_ZEEK_COMPATIBILITY:STRING=${{ matrix.zeek_version }} ..\osquery
 
     - name: Build the project
       run: cd build ; & '${{ steps.cmake_installer.outputs.CMAKE_BINARY }}' --build . --config ${{ matrix.build_type }} -j 4
 
     - name: Run the tests
-      run: cd build ; & '${{ steps.cmake_installer.outputs.CMAKE_BINARY }}' --build . --target zeek_agent_tests -j 4
+      run: cd build ; & '${{ steps.cmake_installer.outputs.CMAKE_BINARY }}' --build . --config ${{ matrix.build_type }} --target zeek_agent_tests -j 4
+
+    - name: Install the project
+      run: cd build ; & '${{ steps.cmake_installer.outputs.CMAKE_BINARY }}' --build . --config ${{ matrix.build_type }} --target install
+
+    - name: Configure the packaging project
+      run: cd package ; & '${{ steps.cmake_installer.outputs.CMAKE_BINARY }}' -DZEEK_AGENT_ZEEK_COMPATIBILITY:STRING="${{ matrix.zeek_version }}" -DZEEK_AGENT_INSTALL_PATH:PATH="${{ env.GITHUB_WORKSPACE }}\install" -DCMAKE_INSTALL_PREFIX:PATH="C:\\Program Files\\Corelight\\Zeek Agent" ..\\packaging
+
+    - name: Build the packages
+      run: cd package ; & '${{ steps.cmake_installer.outputs.CMAKE_BINARY }}' --build . --config ${{ matrix.build_type }} --target package
+
+    - name: Locate the package
+      id: package_location
+      run: echo "::set-output name=ZIP_PACKAGE_PATH::$(ls package\*.zip)"
+
+    - name: Store the .zip package artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: windows_zip_package-${{ matrix.build_type }}-${{ matrix.zeek_version }}
+        path: ${{ steps.package_location.outputs.ZIP_PACKAGE_PATH }}
+
+  windows_packaging:
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
+    needs: windows_build
+    runs-on: windows-2019
+
+    steps:
+      - name: Download the ZIP package from the windows_build job (Release, Zeek 3.1)
+        uses: actions/download-artifact@v1
+        with:
+          name: windows_zip_package-Release-3.1
+
+      - name: Locate the Zeek 3.1 package
+        id: zeek31_package_location
+        run: |
+          echo "::set-output name=ZIP_PACKAGE_PATH::$(ls windows_zip_package-Release-3.1\*.zip)"
+          echo "::set-output name=ZIP_ASSET_NAME::zeek31_$(cd windows_zip_package-Release-3.1 && ls *.zip)"
+
+      - name: Draft the new release
+        id: create_release
+        uses: actions/create-release@v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Version ${{ github.ref }}
+          draft: true
+          prerelease: false
+
+      - name: Upload the Zeek 3.1 .zip package
+        id: upload_zip_package_zeek31
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.zeek31_package_location.outputs.ZIP_PACKAGE_PATH }}
+          asset_name: ${{ steps.zeek31_package_location.outputs.ZIP_ASSET_NAME }}
+          asset_content_type: application/zip

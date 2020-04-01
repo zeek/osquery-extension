@@ -14,8 +14,6 @@ function(zeekAgentDocumentation)
         "$ENV{PROGRAMFILES\(X86\)}\\doxygen\\bin"
     )
 
-    message(WARNING "HINTS: ${optional_hints}")
-
     set(executable_extension ".exe")
   endif()
 

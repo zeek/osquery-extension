@@ -5,6 +5,7 @@ include(ExternalProject)
 
 function(zeekAgentLibrariesOpenSSL)
   set(openssl_version "1.1.1d")
+  string(SUBSTRING "${openssl_version}" 0 3 openssl_truncated_version)
 
   get_target_property(zlib_include_path thirdparty_zlib
     INTERFACE_INCLUDE_DIRECTORIES
@@ -23,6 +24,7 @@ function(zeekAgentLibrariesOpenSSL)
 
       URL
         "https://www.openssl.org/source/openssl-${openssl_version}.tar.gz"
+        "https://www.openssl.org/source/old/${openssl_truncated_version}/openssl-${openssl_version}.tar.gz"
 
       CONFIGURE_COMMAND 
         "${CMAKE_COMMAND}" -E env CC="${CMAKE_C_COMPILER}" AR="${CMAKE_AR}"
@@ -61,6 +63,7 @@ function(zeekAgentLibrariesOpenSSL)
 
       URL
         "https://www.openssl.org/source/openssl-${openssl_version}.tar.gz"
+        "https://www.openssl.org/source/old/${openssl_truncated_version}/openssl-${openssl_version}.tar.gz"
 
       CONFIGURE_COMMAND 
         "${CMAKE_COMMAND}" -E env CC="${CMAKE_C_COMPILER}" AR="${CMAKE_AR}"
@@ -100,6 +103,7 @@ function(zeekAgentLibrariesOpenSSL)
 
       URL
         "https://www.openssl.org/source/openssl-${openssl_version}.tar.gz"
+        "https://www.openssl.org/source/old/${openssl_truncated_version}/openssl-${openssl_version}.tar.gz"
 
       CONFIGURE_COMMAND 
         "${CMAKE_COMMAND}" -E env "${PERL_EXECUTABLE}" Configure VC-WIN64A no-ssl2 no-ssl3 no-asm no-shared
