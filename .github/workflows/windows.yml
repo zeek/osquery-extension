@@ -108,7 +108,7 @@ jobs:
         id: zeek31_package_location
         run: |
           echo "::set-output name=ZIP_PACKAGE_PATH::$(ls windows_zip_package-Release-3.1\*.zip)"
-          echo "::set-output name=ZIP_ASSET_NAME::zeek31_$(cd windows_zip_package-Release-3.1 && ls *.zip)"
+          echo "::set-output name=ZIP_ASSET_NAME::zeek31_$(echo (Get-Item "windows_zip_package-Release-3.1\*.zip").Name)"
 
       - name: Draft the new release
         id: create_release
