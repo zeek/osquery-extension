@@ -5,7 +5,7 @@ include(ExternalProject)
 
 function(zeekAgentLibrariesOpenSSL)
   set(openssl_version "1.1.1d")
-  string(SUBSTRING "${openssl_version}" 0 3 openssl_truncated_version)
+  string(SUBSTRING "${openssl_version}" 0 5 openssl_truncated_version)
 
   get_target_property(zlib_include_path thirdparty_zlib
     INTERFACE_INCLUDE_DIRECTORIES

@@ -27,7 +27,7 @@ jobs:
 
     - name: Select the CMake version
       id: cmake_version
-      run: echo ::set-output name=VALUE::3.16.4
+      run: echo ::set-output name=VALUE::3.17.0
 
     - name: Select the osquery version
       id: osquery_version
