@@ -126,7 +126,7 @@ jobs:
     - name: Configure the project
       run: |
         export CCACHE_DIR="$(realpath ccache)"
-        ( cd build && "${{ steps.cmake_installer.outputs.CMAKE_BINARY }}" -G Ninja -DOSQUERY_TOOLCHAIN_SYSROOT:PATH="${{ steps.osquery_toolchain_installer.outputs.PATH }}" -DCMAKE_INSTALL_PREFIX:PATH="/usr" -DCMAKE_BUILD_TYPE:STRING="${{ matrix.build_type }}" -DZEEK_AGENT_ENABLE_DOCUMENTATION:BOOL=true -DZEEK_AGENT_ENABLE_INSTALL:BOOL=true -DZEEK_AGENT_ENABLE_TESTS:BOOL=true -DZEEK_AGENT_ENABLE_SANITIZERS:BOOL="${{ steps.sanitizers_settings.outputs.VALUE }}" -DZEEK_AGENT_ZEEK_COMPATIBILITY:STRING="${{ matrix.zeek_version }}" ../osquery )
+        ( cd build && "${{ steps.cmake_installer.outputs.CMAKE_BINARY }}" -G Ninja -DOSQUERY_NO_DEBUG_SYMBOLS:BOOL=true -DOSQUERY_TOOLCHAIN_SYSROOT:PATH="${{ steps.osquery_toolchain_installer.outputs.PATH }}" -DCMAKE_INSTALL_PREFIX:PATH="/usr" -DCMAKE_BUILD_TYPE:STRING="${{ matrix.build_type }}" -DZEEK_AGENT_ENABLE_DOCUMENTATION:BOOL=true -DZEEK_AGENT_ENABLE_INSTALL:BOOL=true -DZEEK_AGENT_ENABLE_TESTS:BOOL=true -DZEEK_AGENT_ENABLE_SANITIZERS:BOOL="${{ steps.sanitizers_settings.outputs.VALUE }}" -DZEEK_AGENT_ZEEK_COMPATIBILITY:STRING="${{ matrix.zeek_version }}" ../osquery )
 
     - name: Build the project
       run: |
