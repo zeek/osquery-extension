@@ -23,7 +23,7 @@ jobs:
         zeek_version: ['3.1']
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
 
     - name: Select the CMake version
       id: cmake_version

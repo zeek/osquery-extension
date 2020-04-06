@@ -23,7 +23,7 @@ jobs:
         zeek_version: ['3.0', '3.1']
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
 
     - name: Select the osquery-toolchain version
       id: osquery_toolchain_version
@@ -62,7 +62,7 @@ jobs:
 
     - name: Generate the cache key
       id: cache_key
-      run: echo ::set-output name=VALUE::build_${{ matrix.os }}_type-${{ matrix.build_type }}_osquery-toolchain-${{ steps.osquery_toolchain_version.outputs.VALUE }}_cmake-${{ steps.cmake_version.outputs.VALUE }}_zeek-version-${{ matrix.zeek_version }}
+      run: echo ::set-output name=VALUE::${{ matrix.os }}_type-${{ matrix.build_type }}_osquery-toolchain-${{ steps.osquery_toolchain_version.outputs.VALUE }}_cmake-${{ steps.cmake_version.outputs.VALUE }}_zeek-version-${{ matrix.zeek_version }}
 
     - name: Update the cache (ccache)
       uses: actions/cache@v1.0.3
