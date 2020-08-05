@@ -23,8 +23,7 @@ Status FileEventsTablePlugin::create(Ref &obj,
   obj.reset();
 
   try {
-    auto ptr = new FileEventsTablePlugin(configuration, logger);
-    obj.reset(ptr);
+    obj.reset(new FileEventsTablePlugin(configuration, logger));
 
     return Status::success();
 
@@ -146,7 +145,8 @@ Status FileEventsTablePlugin::generateRow(
     action = "create";
     break;
 
-  default:
+  case IEndpointSecurityConsumer::Event::Type::Exec:
+  case IEndpointSecurityConsumer::Event::Type::Fork:
     return Status::success();
   }
   const auto &header = event.header;

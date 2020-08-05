@@ -27,7 +27,7 @@ generateEvent(IEndpointSecurityConsumer::Event::Type type) {
     event.type = type;
 
   } else {
-    throw std::logic_error("Invalid event type specified");
+    FAIL("Invalid event type specified");
   }
 
   return event;
