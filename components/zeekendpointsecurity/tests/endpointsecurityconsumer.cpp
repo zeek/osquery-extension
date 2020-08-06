@@ -44,7 +44,7 @@ TEST_CASE("Event header initialization", "[ZeekEndpointConsumer]") {
 
   IEndpointSecurityConsumer::Event::Header header;
   auto status =
-      EndpointSecurityConsumer::initializeEventHeader(header, &es_message);
+      EndpointSecurityConsumer::initializeEventHeader(header, es_message);
 
   REQUIRE(status.succeeded());
 

@@ -4,6 +4,7 @@
 #include <optional>
 #include <vector>
 
+#include <EndpointSecurity/EndpointSecurity.h>
 #include <zeek/iendpointsecurityconsumer.h>
 
 namespace zeek {
@@ -26,7 +27,7 @@ private:
                            IZeekConfiguration &configuration);
 
   /// \brief Event callback used by EndpointSecurity
-  void endpointSecurityCallback(const void *message_ptr);
+  void endpointSecurityCallback(const es_message_t &message);
 
 public:
   /// \brief Initializes the event header from the given message
@@ -34,19 +35,21 @@ public:
   /// \param message_ptr a valid pointer to an EndpointSecurity es_message_t
   /// \return A Status object
   static Status initializeEventHeader(Event::Header &event_header,
-                                      const void *message_ptr);
+                                      const es_message_t &message);
 
   /// \brief Process execution event handler
   /// \param event the generated event object
   /// \param message_ptr a valid pointer to an EndpointSecurity es_message_t
   /// \return A Status object
-  static Status processExecNotification(Event &event, const void *message_ptr);
+  static Status processExecNotification(Event &event,
+                                        const es_message_t &message);
 
   /// \brief Process forking event handler
   /// \param event the generated event object
   /// \param message_ptr a valid pointer to an EndpointSecurity es_message_t
   /// \return A Status object
-  static Status processForkNotification(Event &event, const void *message_ptr);
+  static Status processForkNotification(Event &event,
+                                        const es_message_t &message);
 
   friend class IEndpointSecurityConsumer;
 
@@ -54,13 +57,14 @@ public:
   /// \param event the generated event object
   /// \param message_ptr a valid pointer to an EndpointSecurity es_message_t
   /// \return A Status object
-  static Status processOpenNotification(Event &event, const void *message_ptr);
+  static Status processOpenNotification(Event &event,
+                                        const es_message_t &message);
 
   /// \brief File create event handler
   /// \param event the generated event object
   /// \param message_ptr a valid pointer to an EndpointSecurity es_message_t
   /// \return A Status object
   static Status processCreateNotification(Event &event,
-                                          const void *message_ptr);
+                                          const es_message_t &message);
 };
 } // namespace zeek
