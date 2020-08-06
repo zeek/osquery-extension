@@ -127,15 +127,21 @@ void EndpointSecurityConsumer::endpointSecurityCallback(
 
   Status status;
   Event event;
-  if (message.event_type == ES_EVENT_TYPE_NOTIFY_EXEC) {
+  switch (message.event_type) {
+  case ES_EVENT_TYPE_NOTIFY_EXEC:
     status = processExecNotification(event, message_ptr);
-
-  } else if (message.event_type == ES_EVENT_TYPE_NOTIFY_FORK) {
+    break;
+  case ES_EVENT_TYPE_NOTIFY_FORK:
     status = processForkNotification(event, message_ptr);
-  } else if (message.event_type == ES_EVENT_TYPE_NOTIFY_OPEN) {
+    break;
+  case ES_EVENT_TYPE_NOTIFY_OPEN:
     status = processOpenNotification(event, message_ptr);
-  } else if (message.event_type == ES_EVENT_TYPE_NOTIFY_CREATE) {
+    break;
+  case ES_EVENT_TYPE_NOTIFY_CREATE:
     status = processCreateNotification(event, message_ptr);
+    break;
+  default:
+    status = Status::failure("Unhandled event type");
   }
 
   if (!status.succeeded()) {

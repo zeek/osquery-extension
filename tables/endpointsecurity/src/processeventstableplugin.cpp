@@ -45,23 +45,21 @@ const std::string &ProcessEventsTablePlugin::name() const {
 
 const ProcessEventsTablePlugin::Schema &
 ProcessEventsTablePlugin::schema() const {
-  // clang-format off
+
   static const Schema kTableSchema = {
-    { "timestamp", IVirtualTable::ColumnType::Integer },
-    { "type", IVirtualTable::ColumnType::String },
-    { "parent_process_id", IVirtualTable::ColumnType::Integer },
-    { "orig_parent_process_id", IVirtualTable::ColumnType::Integer },
-    { "process_id", IVirtualTable::ColumnType::Integer },
-    { "user_id", IVirtualTable::ColumnType::Integer },
-    { "group_id", IVirtualTable::ColumnType::Integer },
-    { "platform_binary", IVirtualTable::ColumnType::Integer },
-    { "signing_id", IVirtualTable::ColumnType::String },
-    { "team_id", IVirtualTable::ColumnType::String },
-    { "cdhash", IVirtualTable::ColumnType::String },
-    { "path", IVirtualTable::ColumnType::String },
-    { "cmdline", IVirtualTable::ColumnType::String }
-  };
-  // clang-format on
+      {"timestamp", IVirtualTable::ColumnType::Integer},
+      {"type", IVirtualTable::ColumnType::String},
+      {"parent_process_id", IVirtualTable::ColumnType::Integer},
+      {"orig_parent_process_id", IVirtualTable::ColumnType::Integer},
+      {"process_id", IVirtualTable::ColumnType::Integer},
+      {"user_id", IVirtualTable::ColumnType::Integer},
+      {"group_id", IVirtualTable::ColumnType::Integer},
+      {"platform_binary", IVirtualTable::ColumnType::Integer},
+      {"signing_id", IVirtualTable::ColumnType::String},
+      {"team_id", IVirtualTable::ColumnType::String},
+      {"cdhash", IVirtualTable::ColumnType::String},
+      {"path", IVirtualTable::ColumnType::String},
+      {"cmdline", IVirtualTable::ColumnType::String}};
 
   return kTableSchema;
 }
@@ -95,13 +93,9 @@ Status ProcessEventsTablePlugin::processEvents(
   {
     std::lock_guard<std::mutex> lock(d->row_list_mutex);
 
-    // clang-format off
-    d->row_list.insert(
-      d->row_list.end(),
-      std::make_move_iterator(generated_row_list.begin()),
-      std::make_move_iterator(generated_row_list.end())
-    );
-    // clang-format on
+    d->row_list.insert(d->row_list.end(),
+                       std::make_move_iterator(generated_row_list.begin()),
+                       std::make_move_iterator(generated_row_list.end()));
 
     if (d->row_list.size() > d->max_queued_row_count) {
       auto rows_to_remove = d->row_list.size() - d->max_queued_row_count;
@@ -112,12 +106,8 @@ Status ProcessEventsTablePlugin::processEvents(
                                " rows (max row count is set to " +
                                std::to_string(d->max_queued_row_count));
 
-      // clang-format off
-      d->row_list.erase(
-        d->row_list.begin(),
-        std::next(d->row_list.begin(), rows_to_remove)
-      );
-      // clang-format on
+      d->row_list.erase(d->row_list.begin(),
+                        std::next(d->row_list.begin(), rows_to_remove));
     }
   }
 

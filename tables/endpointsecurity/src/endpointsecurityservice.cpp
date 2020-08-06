@@ -32,19 +32,17 @@ struct EndpointSecurityService::PrivateData final {
 };
 
 EndpointSecurityService::~EndpointSecurityService() {
-  if (!d->process_events_table) {
-    return;
+  if (d->process_events_table) {
+    auto status =
+        d->virtual_database.unregisterTable(d->process_events_table->name());
+    assert(status.succeeded() &&
+           "Failed to unregister the process_events table");
   }
-
-  auto status =
-      d->virtual_database.unregisterTable(d->process_events_table->name());
-  assert(status.succeeded() && "Failed to unregister the process_events table");
-
-  if (!d->file_events_table) {
-    return;
+  if (d->file_events_table) {
+    auto status =
+        d->virtual_database.unregisterTable(d->file_events_table->name());
+    assert(status.succeeded() && "Failed to unregister the file_events table");
   }
-  status = d->virtual_database.unregisterTable(d->file_events_table->name());
-  assert(status.succeeded() && "Failed to unregister the file_events table");
 }
 
 const std::string &EndpointSecurityService::name() const {
@@ -53,15 +51,13 @@ const std::string &EndpointSecurityService::name() const {
 
 Status EndpointSecurityService::exec(std::atomic_bool &terminate) {
   while (!terminate) {
-    if (!d->process_events_table) {
+    if (!d->process_events_table || !d->file_events_table) {
+      d->logger.logMessage(IZeekLogger::Severity::Information,
+                           "Table(s) not created yet, sleeping for 1 second");
       std::this_thread::sleep_for(std::chrono::seconds(1U));
       continue;
     }
 
-    if (!d->file_events_table) {
-      std::this_thread::sleep_for(std::chrono::seconds(1U));
-      continue;
-    }
     auto &process_events_table_impl =
         *static_cast<ProcessEventsTablePlugin *>(d->process_events_table.get());
 
