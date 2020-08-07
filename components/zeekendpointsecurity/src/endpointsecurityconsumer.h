@@ -32,21 +32,21 @@ private:
 public:
   /// \brief Initializes the event header from the given message
   /// \param event_header The event header object to initialize
-  /// \param message_ptr a valid pointer to an EndpointSecurity es_message_t
+  /// \param message a reference to an EndpointSecurity es_message_t object
   /// \return A Status object
   static Status initializeEventHeader(Event::Header &event_header,
                                       const es_message_t &message);
 
   /// \brief Process execution event handler
   /// \param event the generated event object
-  /// \param message_ptr a valid pointer to an EndpointSecurity es_message_t
+  /// \param message a reference to EndpointSecurity es_message_t object
   /// \return A Status object
   static Status processExecNotification(Event &event,
                                         const es_message_t &message);
 
   /// \brief Process forking event handler
   /// \param event the generated event object
-  /// \param message_ptr a valid pointer to an EndpointSecurity es_message_t
+  /// \param message a reference to an EndpointSecurity es_message_t object
   /// \return A Status object
   static Status processForkNotification(Event &event,
                                         const es_message_t &message);
@@ -55,14 +55,14 @@ public:
 
   /// \brief File open event handler
   /// \param event the generated event object
-  /// \param message_ptr a valid pointer to an EndpointSecurity es_message_t
+  /// \param message a reference to an EndpointSecurity es_message_t object
   /// \return A Status object
   static Status processOpenNotification(Event &event,
                                         const es_message_t &message);
 
   /// \brief File create event handler
   /// \param event the generated event object
-  /// \param message_ptr a valid pointer to an EndpointSecurity es_message_t
+  /// \param message a reference to an EndpointSecurity es_message_t object
   /// \return A Status object
   static Status processCreateNotification(Event &event,
                                           const es_message_t &message);

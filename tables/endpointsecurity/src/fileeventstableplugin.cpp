@@ -19,7 +19,6 @@ struct FileEventsTablePlugin::PrivateData final {
 Status FileEventsTablePlugin::create(Ref &obj,
                                      IZeekConfiguration &configuration,
                                      IZeekLogger &logger) {
-  obj.reset();
 
   try {
     obj.reset(new FileEventsTablePlugin(configuration, logger));

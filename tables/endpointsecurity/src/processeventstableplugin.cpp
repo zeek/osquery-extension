@@ -19,7 +19,6 @@ struct ProcessEventsTablePlugin::PrivateData final {
 Status ProcessEventsTablePlugin::create(Ref &obj,
                                         IZeekConfiguration &configuration,
                                         IZeekLogger &logger) {
-  obj.reset();
 
   try {
     auto ptr = new ProcessEventsTablePlugin(configuration, logger);
