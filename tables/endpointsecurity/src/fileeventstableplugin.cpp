@@ -1,6 +1,7 @@
 #include "fileeventstableplugin.h"
 
 #include <chrono>
+#include <limits>
 #include <mutex>
 
 namespace zeek {
@@ -72,7 +73,6 @@ Status FileEventsTablePlugin::generateRowList(RowList &row_list) {
 
 Status FileEventsTablePlugin::processEvents(
     const IEndpointSecurityConsumer::EventList &event_list) {
-  RowList generated_row_list;
 
   for (const auto &event : event_list) {
     Row row;
@@ -83,26 +83,25 @@ Status FileEventsTablePlugin::processEvents(
     }
 
     if (!row.empty()) {
-      generated_row_list.push_back(std::move(row));
+      {
+        std::lock_guard<std::mutex> lock(d->row_list_mutex);
+        d->row_list.push_back(row);
+      }
     }
   }
 
-  {
-    std::lock_guard<std::mutex> lock(d->row_list_mutex);
+  if (d->row_list.size() > d->max_queued_row_count) {
 
-    d->row_list.insert(d->row_list.end(),
-                       std::make_move_iterator(generated_row_list.begin()),
-                       std::make_move_iterator(generated_row_list.end()));
+    auto rows_to_remove = d->row_list.size() - d->max_queued_row_count;
 
-    if (d->row_list.size() > d->max_queued_row_count) {
-      auto rows_to_remove = d->row_list.size() - d->max_queued_row_count;
+    d->logger.logMessage(IZeekLogger::Severity::Warning,
+                         "file_events: Dropping " +
+                             std::to_string(rows_to_remove) +
+                             " rows (max row count is set to " +
+                             std::to_string(d->max_queued_row_count) + ")");
 
-      d->logger.logMessage(IZeekLogger::Severity::Warning,
-                           "file_events: Dropping " +
-                               std::to_string(rows_to_remove) +
-                               " rows (max row count is set to " +
-                               std::to_string(d->max_queued_row_count));
-
+    {
+      std::lock_guard<std::mutex> lock(d->row_list_mutex);
       d->row_list.erase(d->row_list.begin(),
                         std::next(d->row_list.begin(), rows_to_remove));
     }
@@ -137,6 +136,8 @@ Status FileEventsTablePlugin::generateRow(
     return Status::success();
   }
   const auto &header = event.header;
+  assert((header.timestamp <= std::numeric_limits<int64_t>::max()) &&
+         "Failed to cast timestamp to int64_t");
   row["timestamp"] = static_cast<std::int64_t>(header.timestamp);
   row["parent_process_id"] =
       static_cast<std::int64_t>(header.parent_process_id);
