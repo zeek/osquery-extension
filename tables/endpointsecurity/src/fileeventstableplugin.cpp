@@ -114,7 +114,6 @@ Status FileEventsTablePlugin::processEvents(
 FileEventsTablePlugin::FileEventsTablePlugin(IZeekConfiguration &configuration,
                                              IZeekLogger &logger)
     : d(new PrivateData(configuration, logger)) {
-
   d->max_queued_row_count = d->configuration.maxQueuedRowCount();
 }
 
@@ -152,7 +151,7 @@ Status FileEventsTablePlugin::generateRow(
   row["cdhash"] = header.cdhash;
   row["path"] = header.path;
   row["file_path"] = header.file_path;
-  row["type"] = action;
+  row["type"] = std::move(action);
 
   return Status::success();
 }

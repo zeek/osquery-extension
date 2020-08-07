@@ -136,7 +136,8 @@ Status ProcessEventsTablePlugin::generateRow(
     action = "fork";
     break;
 
-  default:
+  case IEndpointSecurityConsumer::Event::Type::Open:
+  case IEndpointSecurityConsumer::Event::Type::Create:
     return Status::success();
   }
 
@@ -159,7 +160,7 @@ Status ProcessEventsTablePlugin::generateRow(
   row["path"] = header.path;
 
   if (event.type == IEndpointSecurityConsumer::Event::Type::Exec) {
-    row["type"] = action;
+    row["type"] = std::move(action);
 
     if (event.opt_exec_event_data.has_value()) {
       const auto &exec_event_data = event.opt_exec_event_data.value();
@@ -176,7 +177,7 @@ Status ProcessEventsTablePlugin::generateRow(
     }
 
   } else if (event.type == IEndpointSecurityConsumer::Event::Type::Fork) {
-    row["type"] = action;
+    row["type"] = std::move(action);
 
     if (event.opt_exec_event_data.has_value()) {
       return Status::failure("Invalid event data");
