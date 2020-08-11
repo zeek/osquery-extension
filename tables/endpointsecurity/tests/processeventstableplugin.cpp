@@ -40,59 +40,58 @@ generateEvent(IEndpointSecurityConsumer::Event::Type type) {
 
 void validateRow(const IVirtualTable::Row &row,
                  const IEndpointSecurityConsumer::Event &event) {
-  REQUIRE(row.size() == 13U);
-
-  REQUIRE(std::get<std::int64_t>(row.at("timestamp").value()) ==
-          event.header.timestamp);
-
-  REQUIRE(std::get<std::int64_t>(row.at("parent_process_id").value()) ==
-          event.header.parent_process_id);
-
-  REQUIRE(std::get<std::int64_t>(row.at("orig_parent_process_id").value()) ==
-          event.header.orig_parent_process_id);
-
-  REQUIRE(std::get<std::int64_t>(row.at("process_id").value()) ==
-          event.header.process_id);
-
-  REQUIRE(std::get<std::int64_t>(row.at("user_id").value()) ==
-          event.header.user_id);
-
-  REQUIRE(std::get<std::int64_t>(row.at("group_id").value()) ==
-          event.header.group_id);
-
-  REQUIRE(std::get<std::int64_t>(row.at("platform_binary").value()) ==
-          event.header.platform_binary);
-
-  REQUIRE(std::get<std::string>(row.at("signing_id").value()) ==
-          event.header.signing_id);
-
-  REQUIRE(std::get<std::string>(row.at("team_id").value()) ==
-          event.header.team_id);
-
-  REQUIRE(std::get<std::string>(row.at("cdhash").value()) ==
-          event.header.cdhash);
-
-  REQUIRE(std::get<std::string>(row.at("path").value()) == event.header.path);
-
   auto valid_event =
       event.type == IEndpointSecurityConsumer::Event::Type::Exec ||
       event.type == IEndpointSecurityConsumer::Event::Type::Fork;
 
   REQUIRE(valid_event);
 
+  CHECK(row.size() == 13U);
+
+  CHECK(std::get<std::int64_t>(row.at("timestamp").value()) ==
+        event.header.timestamp);
+
+  CHECK(std::get<std::int64_t>(row.at("parent_process_id").value()) ==
+        event.header.parent_process_id);
+
+  CHECK(std::get<std::int64_t>(row.at("orig_parent_process_id").value()) ==
+        event.header.orig_parent_process_id);
+
+  CHECK(std::get<std::int64_t>(row.at("process_id").value()) ==
+        event.header.process_id);
+
+  CHECK(std::get<std::int64_t>(row.at("user_id").value()) ==
+        event.header.user_id);
+
+  CHECK(std::get<std::int64_t>(row.at("group_id").value()) ==
+        event.header.group_id);
+
+  CHECK(std::get<std::int64_t>(row.at("platform_binary").value()) ==
+        event.header.platform_binary);
+
+  CHECK(std::get<std::string>(row.at("signing_id").value()) ==
+        event.header.signing_id);
+
+  CHECK(std::get<std::string>(row.at("team_id").value()) ==
+        event.header.team_id);
+
+  CHECK(std::get<std::string>(row.at("cdhash").value()) == event.header.cdhash);
+
+  CHECK(std::get<std::string>(row.at("path").value()) == event.header.path);
+
   if (event.type == IEndpointSecurityConsumer::Event::Type::Exec) {
-    REQUIRE(std::get<std::string>(row.at("type").value()) == "exec");
+    CHECK(std::get<std::string>(row.at("type").value()) == "exec");
 
     std::string expected_cmd_line;
     for (const auto &arg : event.opt_exec_event_data.value().argument_list) {
       expected_cmd_line += " " + arg;
     }
 
-    REQUIRE(std::get<std::string>(row.at("cmdline").value()) ==
-            expected_cmd_line);
+    CHECK(std::get<std::string>(row.at("cmdline").value()) ==
+          expected_cmd_line);
 
   } else {
-    REQUIRE(std::get<std::string>(row.at("type").value()) == "fork");
+    CHECK(std::get<std::string>(row.at("type").value()) == "fork");
   }
 }
 } // namespace

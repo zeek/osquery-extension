@@ -35,6 +35,12 @@ generateEvent(IEndpointSecurityConsumer::Event::Type type) {
 
 void validateRow(const IVirtualTable::Row &row,
                  const IEndpointSecurityConsumer::Event &event) {
+  auto valid_event =
+      event.type == IEndpointSecurityConsumer::Event::Type::Open ||
+      event.type == IEndpointSecurityConsumer::Event::Type::Create;
+
+  REQUIRE(valid_event);
+
   CHECK(row.size() == 13U);
 
   CHECK(std::get<std::int64_t>(row.at("timestamp").value()) ==
@@ -71,12 +77,6 @@ void validateRow(const IVirtualTable::Row &row,
   CHECK(std::get<std::string>(row.at("file_path").value()) ==
         event.header.file_path);
 
-  auto valid_event =
-      event.type == IEndpointSecurityConsumer::Event::Type::Open ||
-      event.type == IEndpointSecurityConsumer::Event::Type::Create;
-
-  REQUIRE(valid_event);
-
   if (event.type == IEndpointSecurityConsumer::Event::Type::Open) {
     CHECK(std::get<std::string>(row.at("type").value()) == "open");
 
@@ -94,7 +94,7 @@ SCENARIO("Row generation in the file_events table", "[FileEventsTablePlugin]") {
     WHEN("generating a table row") {
       IVirtualTable::Row row;
       auto status = FileEventsTablePlugin::generateRow(row, event);
-      CHECK(status.succeeded());
+      REQUIRE(status.succeeded());
 
       validateRow(row, event);
     }
@@ -106,7 +106,7 @@ SCENARIO("Row generation in the file_events table", "[FileEventsTablePlugin]") {
     WHEN("generating table rows") {
       IVirtualTable::Row row;
       auto status = FileEventsTablePlugin::generateRow(row, event);
-      CHECK(status.succeeded());
+      REQUIRE(status.succeeded());
 
       validateRow(row, event);
     }

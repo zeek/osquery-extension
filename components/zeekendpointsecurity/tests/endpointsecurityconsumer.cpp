@@ -48,17 +48,17 @@ TEST_CASE("Event header initialization for Exec Event",
 
   REQUIRE(status.succeeded());
 
-  REQUIRE(header.timestamp != 0U);
-  REQUIRE(header.parent_process_id == 10U);
-  REQUIRE(header.orig_parent_process_id == 11U);
-  REQUIRE(header.process_id == 245U);
-  REQUIRE(header.user_id == 241U);
-  REQUIRE(header.group_id == 242U);
-  REQUIRE(header.platform_binary == 1U);
-  REQUIRE(header.signing_id == kDummySigningIdentifier);
-  REQUIRE(header.team_id == kDummyTeamIdentifier);
-  REQUIRE(header.path == kDummyPath);
-  REQUIRE(header.cdhash == "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3");
+  CHECK(header.timestamp != 0U);
+  CHECK(header.parent_process_id == 10U);
+  CHECK(header.orig_parent_process_id == 11U);
+  CHECK(header.process_id == 245U);
+  CHECK(header.user_id == 241U);
+  CHECK(header.group_id == 242U);
+  CHECK(header.platform_binary == 1U);
+  CHECK(header.signing_id == kDummySigningIdentifier);
+  CHECK(header.team_id == kDummyTeamIdentifier);
+  CHECK(header.path == kDummyPath);
+  CHECK(header.cdhash == "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3");
 }
 
 TEST_CASE("Event header initialization for Open event",
@@ -109,18 +109,18 @@ TEST_CASE("Event header initialization for Open event",
 
   REQUIRE(status.succeeded());
 
-  REQUIRE(header.timestamp != 0U);
-  REQUIRE(header.parent_process_id == 10U);
-  REQUIRE(header.orig_parent_process_id == 11U);
-  REQUIRE(header.process_id == 245U);
-  REQUIRE(header.user_id == 241U);
-  REQUIRE(header.group_id == 242U);
-  REQUIRE(header.platform_binary == 1U);
-  REQUIRE(header.signing_id == kDummySigningIdentifier);
-  REQUIRE(header.team_id == kDummyTeamIdentifier);
-  REQUIRE(header.path == kDummyPath);
-  REQUIRE(header.cdhash == "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3");
-  REQUIRE(header.file_path == kDummyFilePath);
+  CHECK(header.timestamp != 0U);
+  CHECK(header.parent_process_id == 10U);
+  CHECK(header.orig_parent_process_id == 11U);
+  CHECK(header.process_id == 245U);
+  CHECK(header.user_id == 241U);
+  CHECK(header.group_id == 242U);
+  CHECK(header.platform_binary == 1U);
+  CHECK(header.signing_id == kDummySigningIdentifier);
+  CHECK(header.team_id == kDummyTeamIdentifier);
+  CHECK(header.path == kDummyPath);
+  CHECK(header.cdhash == "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3");
+  CHECK(header.file_path == kDummyFilePath);
 }
 
 TEST_CASE("Event header initialization for Create event with existing path",
@@ -179,18 +179,18 @@ TEST_CASE("Event header initialization for Create event with existing path",
 
   REQUIRE(status.succeeded());
 
-  REQUIRE(header.timestamp != 0U);
-  REQUIRE(header.parent_process_id == 10U);
-  REQUIRE(header.orig_parent_process_id == 11U);
-  REQUIRE(header.process_id == 245U);
-  REQUIRE(header.user_id == 241U);
-  REQUIRE(header.group_id == 242U);
-  REQUIRE(header.platform_binary == 1U);
-  REQUIRE(header.signing_id == kDummySigningIdentifier);
-  REQUIRE(header.team_id == kDummyTeamIdentifier);
-  REQUIRE(header.path == kDummyPath);
-  REQUIRE(header.cdhash == "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3");
-  REQUIRE(header.file_path == kDummyFilePath);
+  CHECK(header.timestamp != 0U);
+  CHECK(header.parent_process_id == 10U);
+  CHECK(header.orig_parent_process_id == 11U);
+  CHECK(header.process_id == 245U);
+  CHECK(header.user_id == 241U);
+  CHECK(header.group_id == 242U);
+  CHECK(header.platform_binary == 1U);
+  CHECK(header.signing_id == kDummySigningIdentifier);
+  CHECK(header.team_id == kDummyTeamIdentifier);
+  CHECK(header.path == kDummyPath);
+  CHECK(header.cdhash == "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3");
+  CHECK(header.file_path == kDummyFilePath);
 }
 
 TEST_CASE("Event header initialization for Create event with new path",
@@ -242,17 +242,17 @@ TEST_CASE("Event header initialization for Create event with new path",
 
   REQUIRE(status.succeeded());
 
-  REQUIRE(header.timestamp != 0U);
-  REQUIRE(header.parent_process_id == 10U);
-  REQUIRE(header.orig_parent_process_id == 11U);
-  REQUIRE(header.process_id == 245U);
-  REQUIRE(header.user_id == 241U);
-  REQUIRE(header.group_id == 242U);
-  REQUIRE(header.platform_binary == 1U);
-  REQUIRE(header.signing_id == kDummySigningIdentifier);
-  REQUIRE(header.team_id == kDummyTeamIdentifier);
-  REQUIRE(header.path == kDummyPath);
-  REQUIRE(header.cdhash == "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3");
-  REQUIRE(header.file_path == kDummyFilePath);
+  CHECK(header.timestamp != 0U);
+  CHECK(header.parent_process_id == 10U);
+  CHECK(header.orig_parent_process_id == 11U);
+  CHECK(header.process_id == 245U);
+  CHECK(header.user_id == 241U);
+  CHECK(header.group_id == 242U);
+  CHECK(header.platform_binary == 1U);
+  CHECK(header.signing_id == kDummySigningIdentifier);
+  CHECK(header.team_id == kDummyTeamIdentifier);
+  CHECK(header.path == kDummyPath);
+  CHECK(header.cdhash == "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3");
+  CHECK(header.file_path == kDummyFilePath);
 }
 } // namespace zeek
