@@ -92,19 +92,21 @@ Status FileEventsTablePlugin::processEvents(
 
   if (d->row_list.size() > d->max_queued_row_count) {
 
-    auto rows_to_remove = d->row_list.size() - d->max_queued_row_count;
+    std::lock_guard<std::mutex> lock(d->row_list_mutex);
+    
+    if (d->row_list.size() > d->max_queued_row_count) {
+      auto rows_to_remove = d->row_list.size() - d->max_queued_row_count;
 
-    d->logger.logMessage(IZeekLogger::Severity::Warning,
-                         "file_events: Dropping " +
-                             std::to_string(rows_to_remove) +
-                             " rows (max row count is set to " +
-                             std::to_string(d->max_queued_row_count) + ")");
+      d->logger.logMessage(IZeekLogger::Severity::Warning,
+                           "file_events: Dropping " +
+                               std::to_string(rows_to_remove) +
+                               " rows (max row count is set to " +
+                               std::to_string(d->max_queued_row_count) + ")");
 
-    {
-      std::lock_guard<std::mutex> lock(d->row_list_mutex);
       d->row_list.erase(d->row_list.begin(),
                         std::next(d->row_list.begin(), rows_to_remove));
     }
+
   }
 
   return Status::success();
