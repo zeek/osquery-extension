@@ -11,6 +11,7 @@ function(zeekComponents)
     add_subdirectory("zeekaudisp")
   elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
     add_subdirectory("zeekendpointsecurity")
+    add_subdirectory("zeekopenbsm")
   endif()
 
   if(TARGET osqueryd)

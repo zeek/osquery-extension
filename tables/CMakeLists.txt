@@ -7,6 +7,7 @@ function(zeekAgentTables)
     add_subdirectory("audisp")
   elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
     add_subdirectory("endpointsecurity")
+    add_subdirectory("openbsm")
   endif()
 
   add_subdirectory("host_information")
