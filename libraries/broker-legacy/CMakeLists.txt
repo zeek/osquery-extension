@@ -318,6 +318,7 @@ function(generateBroker)
     PUBLIC
       zeek_agent_cxx_settings
       thirdparty_actorframework
+      thirdparty_caf_openssl
       thirdparty_sqlite
 
     PRIVATE
