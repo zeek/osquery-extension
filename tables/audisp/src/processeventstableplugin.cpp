@@ -142,27 +142,27 @@ Status ProcessEventsTablePlugin::generateRow(
   }
 
   const auto &syscall_data = audit_event.syscall_data;
-  std::string syscall;
+  std::string syscall_name;
 
   switch (syscall_data.type) {
   case IAudispConsumer::SyscallRecordData::Type::Execve:
-    syscall = "execve";
+    syscall_name = "execve";
     break;
 
   case IAudispConsumer::SyscallRecordData::Type::ExecveAt:
-    syscall = "execveat";
+    syscall_name = "execveat";
     break;
 
   case IAudispConsumer::SyscallRecordData::Type::Fork:
-    syscall = "fork";
+    syscall_name = "fork";
     break;
 
   case IAudispConsumer::SyscallRecordData::Type::VFork:
-    syscall = "vfork";
+    syscall_name = "vfork";
     break;
 
   case IAudispConsumer::SyscallRecordData::Type::Clone:
-    syscall = "clone";
+    syscall_name = "clone";
     break;
   case IAudispConsumer::SyscallRecordData::Type::Bind:
   case IAudispConsumer::SyscallRecordData::Type::Connect:
@@ -178,7 +178,7 @@ Status ProcessEventsTablePlugin::generateRow(
   auto time_value = static_cast<std::int64_t>(current_timestamp.count());
 
   row["time"] = time_value;
-  row["syscall"] = syscall;
+  row["syscall"] = std::move(syscall_name);
   row["pid"] = syscall_data.process_id;
   row["ppid"] = syscall_data.parent_process_id;
   row["auid"] = syscall_data.auid;

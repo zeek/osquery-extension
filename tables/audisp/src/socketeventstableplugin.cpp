@@ -125,15 +125,15 @@ Status SocketEventsTablePlugin::generateRow(
     Row &row, const IAudispConsumer::AuditEvent &audit_event) {
   row = {};
 
-  std::string syscall;
+  std::string syscall_name;
 
   switch (audit_event.syscall_data.type) {
   case IAudispConsumer::SyscallRecordData::Type::Bind:
-    syscall = "bind";
+    syscall_name = "bind";
     break;
 
   case IAudispConsumer::SyscallRecordData::Type::Connect:
-    syscall = "connect";
+    syscall_name = "connect";
     break;
 
   default:
@@ -147,7 +147,7 @@ Status SocketEventsTablePlugin::generateRow(
   const auto &syscall_data = audit_event.syscall_data;
   const auto &sockaddr_data = audit_event.sockaddr_data.value();
 
-  row["syscall"] = syscall;
+  row["syscall"] = std::move(syscall_name);
   row["pid"] = syscall_data.process_id;
   row["ppid"] = syscall_data.parent_process_id;
   row["auid"] = syscall_data.auid;

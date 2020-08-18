@@ -40,6 +40,13 @@ public:
   /// \return A Status object
   Status processEvents(const IAudispConsumer::AuditEventList &event_list);
 
+  /// \brief Generates a single row from the given Audit event
+  /// \param row Where the generated row is stored
+  /// \param audit_event a single Audit event
+  /// \return A Status object
+  static Status generateRow(Row &row,
+                            const IAudispConsumer::AuditEvent &audit_event);
+
 protected:
   /// \brief Constructor
   /// \param configuration An initialized configuration object
@@ -51,12 +58,5 @@ protected:
   /// \param path file path
   static std::string CombinePaths(const std::string &cwd,
                                   const std::string &path);
-
-public:
-  /// \brief Generates a single row from the given Audit event
-  /// \param audit_event a single Audit event
-  /// \return A Status object
-  static Status generateRow(Row &row,
-                            const IAudispConsumer::AuditEvent &audit_event);
 };
 } // namespace zeek

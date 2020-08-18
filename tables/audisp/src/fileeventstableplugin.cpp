@@ -147,7 +147,7 @@ Status FileEventsTablePlugin::generateRow(
     Row &row, const IAudispConsumer::AuditEvent &audit_event) {
   row = {};
 
-  std::string syscall;
+  std::string syscall_name;
   std::string full_path;
   std::int64_t inode;
   switch (audit_event.syscall_data.type) {
@@ -161,9 +161,9 @@ Status FileEventsTablePlugin::generateRow(
     }
     if (audit_event.syscall_data.type ==
         IAudispConsumer::SyscallRecordData::Type::Open)
-      syscall = "open";
+      syscall_name = "open";
     else
-      syscall = "openat";
+      syscall_name = "openat";
 
     std::string working_dir_path;
     std::string file_path;
@@ -196,7 +196,7 @@ Status FileEventsTablePlugin::generateRow(
     if (!audit_event.path_data.has_value()) {
       return Status::failure("Missing an AUDIT_PATH record from a file event");
     }
-    syscall = "create";
+    syscall_name = "create";
     const auto &path_record = audit_event.path_data.value();
     if (path_record.size() != 2) {
       return Status::failure(
@@ -220,7 +220,7 @@ Status FileEventsTablePlugin::generateRow(
 
   const auto &syscall_data = audit_event.syscall_data;
 
-  row["syscall"] = std::move(syscall);
+  row["syscall"] = std::move(syscall_name);
   row["pid"] = syscall_data.process_id;
   row["ppid"] = syscall_data.parent_process_id;
   row["uid"] = syscall_data.uid;

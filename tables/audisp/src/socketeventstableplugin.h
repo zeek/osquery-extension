@@ -40,19 +40,18 @@ public:
   /// \return A Status object
   Status processEvents(const IAudispConsumer::AuditEventList &event_list);
 
-protected:
-  /// \brief Constructor
-  /// \param configuration An initialized configuration object
-  /// \param logger An initialized logger object
-  SocketEventsTablePlugin(IZeekConfiguration &configuration,
-                          IZeekLogger &logger);
-
-public:
   /// \brief Generates a new row from the given Audit event
   /// \param row Where the generated row is stored
   /// \param audit_event The source Audit event
   /// \return A Status object
   static Status generateRow(Row &row,
                             const IAudispConsumer::AuditEvent &audit_event);
+
+protected:
+  /// \brief Constructor
+  /// \param configuration An initialized configuration object
+  /// \param logger An initialized logger object
+  SocketEventsTablePlugin(IZeekConfiguration &configuration,
+                          IZeekLogger &logger);
 };
 } // namespace zeek
