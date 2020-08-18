@@ -10,7 +10,7 @@
 #include <unistd.h>
 
 namespace zeek {
-/// \brief Audisp socket consumer (interface)
+/// \brief EndpointSecurity consumer (interface)
 class IEndpointSecurityConsumer {
 public:
   /// \brief Event data
@@ -49,10 +49,13 @@ public:
 
       /// \brief Program path
       std::string path;
+
+      /// \brief File path
+      std::string file_path;
     };
 
     /// \brief Supported event types
-    enum class Type { Fork, Exec };
+    enum class Type { Fork, Exec, Open, Create };
 
     /// \brief Exec event data
     struct ExecEventData final {

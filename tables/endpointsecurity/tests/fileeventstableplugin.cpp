@@ -1,4 +1,4 @@
-#include "processeventstableplugin.h"
+#include "fileeventstableplugin.h"
 
 #include <catch2/catch.hpp>
 
@@ -18,21 +18,16 @@ generateEvent(IEndpointSecurityConsumer::Event::Type type) {
   event.header.team_id = "TeamID";
   event.header.cdhash = "12345";
   event.header.path = "/path/to/application";
+  event.header.file_path = "/path/to/file";
 
-  if (type == IEndpointSecurityConsumer::Event::Type::Exec) {
+  if (type == IEndpointSecurityConsumer::Event::Type::Open) {
     event.type = type;
 
-    IEndpointSecurityConsumer::Event::ExecEventData exec_data;
-    exec_data.argument_list.push_back("argument1");
-    exec_data.argument_list.push_back("argument2");
-
-    event.opt_exec_event_data = std::move(exec_data);
-
-  } else if (type == IEndpointSecurityConsumer::Event::Type::Fork) {
+  } else if (type == IEndpointSecurityConsumer::Event::Type::Create) {
     event.type = type;
 
   } else {
-    throw std::logic_error("Invalid event type specified");
+    FAIL("Invalid event type specified");
   }
 
   return event;
@@ -41,8 +36,8 @@ generateEvent(IEndpointSecurityConsumer::Event::Type type) {
 void validateRow(const IVirtualTable::Row &row,
                  const IEndpointSecurityConsumer::Event &event) {
   auto valid_event =
-      event.type == IEndpointSecurityConsumer::Event::Type::Exec ||
-      event.type == IEndpointSecurityConsumer::Event::Type::Fork;
+      event.type == IEndpointSecurityConsumer::Event::Type::Open ||
+      event.type == IEndpointSecurityConsumer::Event::Type::Create;
 
   REQUIRE(valid_event);
 
@@ -79,44 +74,38 @@ void validateRow(const IVirtualTable::Row &row,
 
   CHECK(std::get<std::string>(row.at("path").value()) == event.header.path);
 
-  if (event.type == IEndpointSecurityConsumer::Event::Type::Exec) {
-    CHECK(std::get<std::string>(row.at("type").value()) == "exec");
+  CHECK(std::get<std::string>(row.at("file_path").value()) ==
+        event.header.file_path);
 
-    std::string expected_cmd_line;
-    for (const auto &arg : event.opt_exec_event_data.value().argument_list) {
-      expected_cmd_line += " " + arg;
-    }
-
-    CHECK(std::get<std::string>(row.at("cmdline").value()) ==
-          expected_cmd_line);
+  if (event.type == IEndpointSecurityConsumer::Event::Type::Open) {
+    CHECK(std::get<std::string>(row.at("type").value()) == "open");
 
   } else {
-    CHECK(std::get<std::string>(row.at("type").value()) == "fork");
+    CHECK(std::get<std::string>(row.at("type").value()) == "create");
   }
 }
 } // namespace
 
-SCENARIO("Row generation in the process_events table",
-         "[ProcessEventsTablePlugin]") {
+SCENARIO("Row generation in the file_events table", "[FileEventsTablePlugin]") {
 
-  GIVEN("a valid exec EndpointSecurity event") {
-    auto event = generateEvent(IEndpointSecurityConsumer::Event::Type::Exec);
+  GIVEN("a valid open EndpointSecurity event") {
+    auto event = generateEvent(IEndpointSecurityConsumer::Event::Type::Open);
 
     WHEN("generating a table row") {
       IVirtualTable::Row row;
-      auto status = ProcessEventsTablePlugin::generateRow(row, event);
+      auto status = FileEventsTablePlugin::generateRow(row, event);
       REQUIRE(status.succeeded());
 
       validateRow(row, event);
     }
   }
 
-  GIVEN("a valid fork EndpointSecurity event") {
-    auto event = generateEvent(IEndpointSecurityConsumer::Event::Type::Fork);
+  GIVEN("a valid create EndpointSecurity event") {
+    auto event = generateEvent(IEndpointSecurityConsumer::Event::Type::Create);
 
     WHEN("generating table rows") {
       IVirtualTable::Row row;
-      auto status = ProcessEventsTablePlugin::generateRow(row, event);
+      auto status = FileEventsTablePlugin::generateRow(row, event);
       REQUIRE(status.succeeded());
 
       validateRow(row, event);

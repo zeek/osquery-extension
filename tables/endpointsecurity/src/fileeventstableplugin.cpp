@@ -1,11 +1,11 @@
-#include "processeventstableplugin.h"
+#include "fileeventstableplugin.h"
 
 #include <chrono>
 #include <limits>
 #include <mutex>
 
 namespace zeek {
-struct ProcessEventsTablePlugin::PrivateData final {
+struct FileEventsTablePlugin::PrivateData final {
   PrivateData(IZeekConfiguration &configuration_, IZeekLogger &logger_)
       : configuration(configuration_), logger(logger_) {}
 
@@ -17,13 +17,12 @@ struct ProcessEventsTablePlugin::PrivateData final {
   std::size_t max_queued_row_count{0U};
 };
 
-Status ProcessEventsTablePlugin::create(Ref &obj,
-                                        IZeekConfiguration &configuration,
-                                        IZeekLogger &logger) {
+Status FileEventsTablePlugin::create(Ref &obj,
+                                     IZeekConfiguration &configuration,
+                                     IZeekLogger &logger) {
 
   try {
-    auto ptr = new ProcessEventsTablePlugin(configuration, logger);
-    obj.reset(ptr);
+    obj.reset(new FileEventsTablePlugin(configuration, logger));
 
     return Status::success();
 
@@ -35,16 +34,15 @@ Status ProcessEventsTablePlugin::create(Ref &obj,
   }
 }
 
-ProcessEventsTablePlugin::~ProcessEventsTablePlugin() {}
+FileEventsTablePlugin::~FileEventsTablePlugin() {}
 
-const std::string &ProcessEventsTablePlugin::name() const {
-  static const std::string kTableName{"process_events"};
+const std::string &FileEventsTablePlugin::name() const {
+  static const std::string kTableName{"file_events"};
 
   return kTableName;
 }
 
-const ProcessEventsTablePlugin::Schema &
-ProcessEventsTablePlugin::schema() const {
+const FileEventsTablePlugin::Schema &FileEventsTablePlugin::schema() const {
 
   static const Schema kTableSchema = {
       {"timestamp", IVirtualTable::ColumnType::Integer},
@@ -59,12 +57,12 @@ ProcessEventsTablePlugin::schema() const {
       {"team_id", IVirtualTable::ColumnType::String},
       {"cdhash", IVirtualTable::ColumnType::String},
       {"path", IVirtualTable::ColumnType::String},
-      {"cmdline", IVirtualTable::ColumnType::String}};
+      {"file_path", IVirtualTable::ColumnType::String}};
 
   return kTableSchema;
 }
 
-Status ProcessEventsTablePlugin::generateRowList(RowList &row_list) {
+Status FileEventsTablePlugin::generateRowList(RowList &row_list) {
   std::lock_guard<std::mutex> lock(d->row_list_mutex);
 
   row_list = std::move(d->row_list);
@@ -73,7 +71,7 @@ Status ProcessEventsTablePlugin::generateRowList(RowList &row_list) {
   return Status::success();
 }
 
-Status ProcessEventsTablePlugin::processEvents(
+Status FileEventsTablePlugin::processEvents(
     const IEndpointSecurityConsumer::EventList &event_list) {
 
   for (const auto &event : event_list) {
@@ -95,12 +93,12 @@ Status ProcessEventsTablePlugin::processEvents(
   if (d->row_list.size() > d->max_queued_row_count) {
 
     std::lock_guard<std::mutex> lock(d->row_list_mutex);
-
+    
     if (d->row_list.size() > d->max_queued_row_count) {
       auto rows_to_remove = d->row_list.size() - d->max_queued_row_count;
 
       d->logger.logMessage(IZeekLogger::Severity::Warning,
-                           "process_events: Dropping " +
+                           "file_events: Dropping " +
                                std::to_string(rows_to_remove) +
                                " rows (max row count is set to " +
                                std::to_string(d->max_queued_row_count) + ")");
@@ -108,19 +106,19 @@ Status ProcessEventsTablePlugin::processEvents(
       d->row_list.erase(d->row_list.begin(),
                         std::next(d->row_list.begin(), rows_to_remove));
     }
+
   }
 
   return Status::success();
 }
 
-ProcessEventsTablePlugin::ProcessEventsTablePlugin(
-    IZeekConfiguration &configuration, IZeekLogger &logger)
+FileEventsTablePlugin::FileEventsTablePlugin(IZeekConfiguration &configuration,
+                                             IZeekLogger &logger)
     : d(new PrivateData(configuration, logger)) {
-
   d->max_queued_row_count = d->configuration.maxQueuedRowCount();
 }
 
-Status ProcessEventsTablePlugin::generateRow(
+Status FileEventsTablePlugin::generateRow(
     Row &row, const IEndpointSecurityConsumer::Event &event) {
 
   row = {};
@@ -128,30 +126,25 @@ Status ProcessEventsTablePlugin::generateRow(
   std::string action;
 
   switch (event.type) {
-  case IEndpointSecurityConsumer::Event::Type::Exec:
-    action = "exec";
-    break;
-
-  case IEndpointSecurityConsumer::Event::Type::Fork:
-    action = "fork";
-    break;
-
   case IEndpointSecurityConsumer::Event::Type::Open:
+    action = "open";
+    break;
   case IEndpointSecurityConsumer::Event::Type::Create:
+    action = "create";
+    break;
+
+  case IEndpointSecurityConsumer::Event::Type::Exec:
+  case IEndpointSecurityConsumer::Event::Type::Fork:
     return Status::success();
   }
-
   const auto &header = event.header;
   assert((header.timestamp <= std::numeric_limits<int64_t>::max()) &&
          "Failed to cast timestamp to int64_t");
   row["timestamp"] = static_cast<std::int64_t>(header.timestamp);
-
   row["parent_process_id"] =
       static_cast<std::int64_t>(header.parent_process_id);
-
   row["orig_parent_process_id"] =
       static_cast<std::int64_t>(header.orig_parent_process_id);
-
   row["process_id"] = static_cast<std::int64_t>(header.process_id);
   row["user_id"] = static_cast<std::int64_t>(header.user_id);
   row["group_id"] = static_cast<std::int64_t>(header.group_id);
@@ -160,33 +153,8 @@ Status ProcessEventsTablePlugin::generateRow(
   row["team_id"] = header.team_id;
   row["cdhash"] = header.cdhash;
   row["path"] = header.path;
-
-  if (event.type == IEndpointSecurityConsumer::Event::Type::Exec) {
-    row["type"] = std::move(action);
-
-    if (event.opt_exec_event_data.has_value()) {
-      const auto &exec_event_data = event.opt_exec_event_data.value();
-
-      std::string buffer;
-      for (const auto &argument : exec_event_data.argument_list) {
-        buffer.reserve(buffer.size() + argument.size() + 1U);
-
-        buffer.push_back(' ');
-        buffer.append(argument);
-      }
-
-      row["cmdline"] = std::move(buffer);
-    }
-
-  } else if (event.type == IEndpointSecurityConsumer::Event::Type::Fork) {
-    row["type"] = std::move(action);
-
-    if (event.opt_exec_event_data.has_value()) {
-      return Status::failure("Invalid event data");
-    }
-
-    row["cmdline"] = "";
-  }
+  row["file_path"] = header.file_path;
+  row["type"] = std::move(action);
 
   return Status::success();
 }
