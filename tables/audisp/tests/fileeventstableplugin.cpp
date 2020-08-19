@@ -165,6 +165,81 @@ SCENARIO("Row generation in the file_events table", "[FileEventsTablePlugin]") {
     }
   }
 
+  GIVEN("a valid open syscall audit event with a space in AUDIT_PATH name field") {
+    // clang-format off
+    static const IAudispConsumer::AuditEvent kCreateAuditEvent = {
+        // Syscall record data
+        {
+            IAudispConsumer::SyscallRecordData::Type::Open,
+            0,
+            38031,
+            38030,
+            true,
+            500,
+            500,
+            500,
+            500,
+            500,
+            "/bin/cat",
+            "7fffd19c5592"
+        },
+
+        // Execve record data
+        {
+        },
+
+        // Path record data
+        {
+            {
+                {
+                    "\"/etc/nginx/nginx config\"",
+                    0100600,
+                    0,
+                    0,
+                    409242
+                }
+            }
+        },
+
+        // Cwd data
+        {
+            "/home/wajih"
+        },
+
+        // Sockaddr data
+        {}
+    };
+    // clang-format on
+    WHEN("generating a table row") {
+      IVirtualTable::Row row;
+      auto status = FileEventsTablePlugin::generateRow(row, kCreateAuditEvent);
+
+      REQUIRE(status.succeeded());
+
+      THEN("rows are generated correctly") {
+        static ExpectedValueList kExpectedColumnList = {
+            {"syscall", "open"},
+            {"pid", kCreateAuditEvent.syscall_data.process_id},
+            {"ppid", kCreateAuditEvent.syscall_data.parent_process_id},
+            {"uid", kCreateAuditEvent.syscall_data.uid},
+            {"gid", kCreateAuditEvent.syscall_data.gid},
+            {"auid", kCreateAuditEvent.syscall_data.auid},
+            {"euid", kCreateAuditEvent.syscall_data.euid},
+            {"egid", kCreateAuditEvent.syscall_data.egid},
+            {"exe", "/bin/cat"},
+            {"path", "/etc/nginx/nginx config"},
+            {"inode", static_cast<std::int64_t>(409242)}};
+
+        REQUIRE(row.size() == kExpectedColumnList.size() + 1);
+
+        REQUIRE(row.count("time") != 0U);
+        REQUIRE(row.at("time").has_value());
+
+        validateRow(row, kExpectedColumnList);
+      }
+    }
+  }
+
   GIVEN("a valid openat syscall audit event") {
     // clang-format off
     static const IAudispConsumer::AuditEvent kCreateAuditEvent = {
