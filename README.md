@@ -2,10 +2,10 @@
 
 The *Zeek Agent* is an endpoint monitoring tool for Linux and macOS that
 reports, by default, file, socket, and process events to
-[Zeek](https://zeek.org). On Linux platform, event data is captured from [Linux
+[Zeek](https://zeek.org). On Linux, event data is captured from [Linux
 Audit](https://linux.die.net/man/8/auditd) using the Unix domain socket plugin
-that comes with [Audisp](https://linux.die.net/man/8/audispd). On macOS
-platform, Zeek Agent leverages [Endpoint
+that comes with [Audisp](https://linux.die.net/man/8/audispd). On macOS,
+Zeek Agent leverages [Endpoint
 Security](https://developer.apple.com/documentation/endpointsecurity) framework
 to capture file and process events while to collect socket events Zeek Agent
 uses [OpenBSM](http://www.trustedbsd.org/openbsm.html).  Collected event data
@@ -31,7 +31,7 @@ The documentation has been moved to the [Zeek Agent
 Wiki](https://github.com/zeek/zeek-agent/wiki), and contains
 guides on building, configuring, and extending the Zeek Agent project.
 
-For convenience, use following links to build and configure Zeek Agent:
+For convenience, use the following links to build and configure Zeek Agent:
 - [Build Guide](https://github.com/zeek/zeek-agent/wiki/Build-Guide)
 - [Configuration Guide](https://github.com/zeek/zeek-agent/wiki/Configuration-Guide)
 
