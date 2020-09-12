@@ -11,7 +11,7 @@
 namespace zeek {
 
 namespace {
-#define AUDIT_PIPE_PATH "/dev/auditpipe"
+constexpr char AUDIT_PIPE_PATH[] = "/dev/auditpipe";
 } // namespace
 
 struct OpenbsmConsumer::PrivateData final {
@@ -138,36 +138,32 @@ void OpenbsmConsumer::extractSubject(IOpenbsmConsumer::Event &event,
   }
 }
 
+
 void OpenbsmConsumer::extractReturn(IOpenbsmConsumer::Event &event,
                                     tokenstr_t tok) {
-
+  u_char status = 0;
   switch (tok.id) {
-  case AUT_RETURN32: {
-    int error = 0;
-    if (au_bsm_to_errno(tok.tt.ret32.status, &error) == 0) {
-      if (error == 0) {
-        event.header.success = 1;
-      } else {
-        event.header.success = 0;
-      }
-    } else
-      event.header.success = 0;
+  case AUT_RETURN32:
+    status = tok.tt.ret32.status;
     break;
-  }
-  case AUT_RETURN64: {
-    int error = 0;
-    if (au_bsm_to_errno(tok.tt.ret64.err, &error) == 0) {
-      if (error == 0) {
-        event.header.success = 1;
-      } else {
-        event.header.success = 0;
-      }
-    } else
-      event.header.success = 0;
+  case AUT_RETURN64:
+    status = tok.tt.ret64.err;
     break;
+  default:
+    return;
   }
-  }
+
+  int error = 0;
+  if (au_bsm_to_errno(status, &error) == 0) {
+    if (error == 0) {
+      event.header.success = 1;
+    } else {
+      event.header.success = 0;
+    }
+  } else
+    event.header.success = 0;
 }
+
 void OpenbsmConsumer::extractSocketInet(IOpenbsmConsumer::Event &event,
                                         tokenstr_t tok) {
 
@@ -322,10 +318,12 @@ Status OpenbsmConsumer::fetchEventsFromPipe() {
   }
   event_filter_list.insert(AUE_CONNECT);
   event_filter_list.insert(AUE_BIND);
+
   fd_set fdset;
-  struct timeval timeout {};
+
+  timeval timeout;
   timeout.tv_sec = 0;
-  timeout.tv_usec = 200000;
+  timeout.tv_usec = 200'000;
 
   while (!d->terminate_producer) {
     FD_ZERO(&fdset);

@@ -3,13 +3,13 @@ project("zeek_openbsm")
 
 function(zeekAgentComponentsOpenbsm)
   add_library("${PROJECT_NAME}"
-          include/zeek/iopenbsmconsumer.h
+      include/zeek/iopenbsmconsumer.h
 
-          src/openbsmconsumer.h
-          src/openbsmconsumer.cpp
+      src/openbsmconsumer.h
+      src/openbsmconsumer.cpp
 
-          src/openbsm_utils.h
-          src/openbsm_utils.cpp
+      src/openbsm_utils.h
+      src/openbsm_utils.cpp
   )
 
   importLibraries()
@@ -66,4 +66,3 @@ function(importLibraries)
 endfunction()
 
 zeekAgentComponentsOpenbsm()
-

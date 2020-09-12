@@ -5,10 +5,10 @@ function(zeekAgentTablesOpenbsm)
     include/zeek/openbsmservicefactory.h
     src/openbsmservicefactory.cpp
 
-          src/openbsmservice.h
+    src/openbsmservice.h
     src/openbsmservice.cpp
-          src/socketeventstableplugin.cpp
-          src/socketeventstableplugin.h
+    src/socketeventstableplugin.cpp
+    src/socketeventstableplugin.h
   )
 
   target_include_directories(zeek_openbsm_tables PRIVATE
