@@ -19,7 +19,7 @@ public:
 private:
   struct PrivateData;
   std::unique_ptr<PrivateData> d;
-  // audit pipe handler
+  /// audit pipe handle
   FILE *audit_pipe{nullptr};
 
   /// list of subscribed events
@@ -29,20 +29,20 @@ private:
   OpenbsmConsumer(IZeekLogger &logger, IZeekConfiguration &configuration);
 
   /// \brief extract header from openbsm token and populate event
-  static void extractHeader(Event &event, tokenstr_t tok);
+  static Status extractHeader(Event &event, tokenstr_t tok);
   /// \brief extract subject from openbsm token and populate event
-  static void extractSubject(Event &event, tokenstr_t tok);
+  static Status extractSubject(Event &event, tokenstr_t tok);
   /// \brief extract return from openbsm token and populate event
-  static void extractReturn(Event &event, tokenstr_t tok);
+  static Status extractReturn(Event &event, tokenstr_t tok);
   /// \brief extract socket-inet from openbsm token and populate event
-  static void extractSocketInet(Event &event, tokenstr_t tok);
+  static Status extractSocketInet(Event &event, tokenstr_t tok);
 
 public:
   friend class IOpenbsmConsumer;
 
-  Status fetchEventsFromPipe();
+  void fetchEventsFromPipe();
   static Status populateSocketEvent(Event &event,
                                     const std::vector<tokenstr_t> &tokens);
-  Status parseMessage();
+  void parseMessage();
 };
 } // namespace zeek

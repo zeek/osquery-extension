@@ -4,6 +4,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <ctime>
+#include <errno.h>
 #include <future>
 #include <iomanip>
 #include <thread>
@@ -33,17 +34,12 @@ OpenbsmConsumer::OpenbsmConsumer(IZeekLogger &logger,
     : d(new PrivateData(logger, configuration)) {
 
   // start fetching events from pipe in a separate thread
+  event_filter_list.insert(AUE_CONNECT);
+  event_filter_list.insert(AUE_BIND);
   std::thread{&OpenbsmConsumer::fetchEventsFromPipe, this}.detach();
 }
 
-OpenbsmConsumer::~OpenbsmConsumer() {
-  d->terminate_producer = true;
-  if (audit_pipe != nullptr) {
-    fclose(audit_pipe);
-    audit_pipe = nullptr;
-  }
-  d->event_list_cv.notify_all();
-}
+OpenbsmConsumer::~OpenbsmConsumer() { d->terminate_producer = true; }
 
 Status OpenbsmConsumer::getEvents(EventList &event_list) {
   event_list = {};
@@ -61,8 +57,8 @@ Status OpenbsmConsumer::getEvents(EventList &event_list) {
   return Status::success();
 }
 
-void OpenbsmConsumer::extractHeader(IOpenbsmConsumer::Event &event,
-                                    tokenstr_t tok) {
+Status OpenbsmConsumer::extractHeader(IOpenbsmConsumer::Event &event,
+                                      tokenstr_t tok) {
   switch (tok.id) {
   case AUT_HEADER32:
     event.header.timestamp = tok.tt.hdr32.s;
@@ -97,16 +93,18 @@ void OpenbsmConsumer::extractHeader(IOpenbsmConsumer::Event &event,
     }
     break;
   }
+  return Status::success();
 }
 
-void OpenbsmConsumer::extractSubject(IOpenbsmConsumer::Event &event,
-                                     tokenstr_t tok) {
+Status OpenbsmConsumer::extractSubject(IOpenbsmConsumer::Event &event,
+                                       tokenstr_t tok) {
 
+  Status status;
   switch (tok.id) {
   case AUT_SUBJECT32: {
     uint32_t pid = tok.tt.subj32.pid;
     event.header.process_id = pid;
-    event.header.path = getPathFromPid(pid);
+    status = getPathFromPid(pid, event.header.path);
     event.header.user_id = tok.tt.subj32.euid;
     event.header.group_id = tok.tt.subj32.egid;
     break;
@@ -114,7 +112,7 @@ void OpenbsmConsumer::extractSubject(IOpenbsmConsumer::Event &event,
   case AUT_SUBJECT64: {
     uint32_t pid = tok.tt.subj64.pid;
     event.header.process_id = pid;
-    event.header.path = getPathFromPid(pid);
+    status = getPathFromPid(pid, event.header.path);
     event.header.user_id = tok.tt.subj64.euid;
     event.header.group_id = tok.tt.subj64.egid;
     break;
@@ -122,7 +120,7 @@ void OpenbsmConsumer::extractSubject(IOpenbsmConsumer::Event &event,
   case AUT_SUBJECT32_EX: {
     uint32_t pid = tok.tt.subj32_ex.pid;
     event.header.process_id = pid;
-    event.header.path = getPathFromPid(pid);
+    status = getPathFromPid(pid, event.header.path);
     event.header.user_id = tok.tt.subj32_ex.euid;
     event.header.group_id = tok.tt.subj32_ex.egid;
     break;
@@ -130,31 +128,29 @@ void OpenbsmConsumer::extractSubject(IOpenbsmConsumer::Event &event,
   case AUT_SUBJECT64_EX: {
     uint32_t pid = tok.tt.subj64_ex.pid;
     event.header.process_id = pid;
-    event.header.path = getPathFromPid(pid);
+    status = getPathFromPid(pid, event.header.path);
     event.header.user_id = tok.tt.subj64_ex.euid;
     event.header.group_id = tok.tt.subj64_ex.egid;
     break;
   }
   }
+  return status;
 }
 
-
-void OpenbsmConsumer::extractReturn(IOpenbsmConsumer::Event &event,
-                                    tokenstr_t tok) {
-  u_char status = 0;
+Status OpenbsmConsumer::extractReturn(IOpenbsmConsumer::Event &event,
+                                      tokenstr_t tok) {
+  u_char ret = 0;
   switch (tok.id) {
   case AUT_RETURN32:
-    status = tok.tt.ret32.status;
+    ret = tok.tt.ret32.status;
     break;
   case AUT_RETURN64:
-    status = tok.tt.ret64.err;
+    ret = tok.tt.ret64.err;
     break;
-  default:
-    return;
   }
 
   int error = 0;
-  if (au_bsm_to_errno(status, &error) == 0) {
+  if (au_bsm_to_errno(ret, &error) == 0) {
     if (error == 0) {
       event.header.success = 1;
     } else {
@@ -162,50 +158,43 @@ void OpenbsmConsumer::extractReturn(IOpenbsmConsumer::Event &event,
     }
   } else
     event.header.success = 0;
+  return Status::success();
 }
 
-void OpenbsmConsumer::extractSocketInet(IOpenbsmConsumer::Event &event,
-                                        tokenstr_t tok) {
+Status OpenbsmConsumer::extractSocketInet(IOpenbsmConsumer::Event &event,
+                                          tokenstr_t tok) {
 
   switch (tok.id) {
-  case AUT_SOCKINET32: {
-    if (event.type == Event::Type::Bind) {
-      event.header.remote_address = "0.0.0.0";
-      event.header.remote_port = 0;
-      event.header.local_address = getIpFromToken(tok);
-      event.header.local_port = ntohs(tok.tt.sockinet_ex32.port);
-    } else {
-      event.header.remote_address = getIpFromToken(tok);
-      event.header.remote_port = ntohs(tok.tt.sockinet_ex32.port);
-      event.header.local_address = "0.0.0.0";
-      event.header.local_port = 0;
-    }
-    if (tok.tt.sockinet_ex32.family == 2) {
-      event.header.family = 2;
-    } else if (tok.tt.sockinet_ex32.family == 26) {
-      event.header.family = 10;
-    } else {
-      event.header.family = 0;
-    }
-
-    break;
-  }
+  case AUT_SOCKINET32:
   case AUT_SOCKINET128: {
-    if (event.type == Event::Type::Bind) {
-      event.header.remote_address = "0.0.0.0";
+    switch (event.type) {
+    case Event::Type::Bind: {
+      event.header.remote_address = "";
       event.header.remote_port = 0;
-      event.header.local_address = getIpFromToken(tok);
-      event.header.local_port =
-          static_cast<std::int64_t>(ntohs(tok.tt.sockinet_ex32.port));
-    } else {
-      event.header.remote_address = getIpFromToken(tok);
-      event.header.remote_port =
-          static_cast<std::int64_t>(ntohs(tok.tt.sockinet_ex32.port));
-      event.header.local_address = "0.0.0.0";
-      event.header.local_port = 0;
+      auto status =
+          getIpFromToken(tok.tt.sockinet_ex32, event.header.local_address);
+      if (!status.succeeded()) {
+        return status;
+      }
+      event.header.local_port = ntohs(tok.tt.sockinet_ex32.port);
+      break;
     }
-    if (tok.tt.sockinet_ex32.family == 2) {
-      event.header.family = 2;
+    case Event::Type::Connect: {
+      auto status =
+          getIpFromToken(tok.tt.sockinet_ex32, event.header.remote_address);
+      if (!status.succeeded()) {
+        return status;
+      }
+      event.header.remote_port = ntohs(tok.tt.sockinet_ex32.port);
+      event.header.local_address = "";
+      event.header.local_port = 0;
+      break;
+    }
+    default:
+      return Status::failure("unhandled event type");
+    }
+    if (tok.tt.sockinet_ex32.family == AF_INET) {
+      event.header.family = AF_INET;
     } else if (tok.tt.sockinet_ex32.family == 26) {
       event.header.family = 10;
     } else {
@@ -214,55 +203,55 @@ void OpenbsmConsumer::extractSocketInet(IOpenbsmConsumer::Event &event,
     break;
   }
   }
+  return Status::success();
 }
 
 Status
 OpenbsmConsumer::populateSocketEvent(Event &event,
                                      const std::vector<tokenstr_t> &tokens) {
 
+  Status status = Status::success();
   for (const auto &tok : tokens) {
-    if (tok.id == AUT_SOCKUNIX) {
-      // we filter unix sockets out
-      continue;
-    }
     switch (tok.id) {
     case AUT_HEADER32:
     case AUT_HEADER64:
     case AUT_HEADER32_EX:
     case AUT_HEADER64_EX:
-      extractHeader(event, tok);
+      status = extractHeader(event, tok);
       break;
     case AUT_SUBJECT32:
     case AUT_SUBJECT64:
     case AUT_SUBJECT32_EX:
     case AUT_SUBJECT64_EX:
-      extractSubject(event, tok);
+      status = extractSubject(event, tok);
       break;
     case AUT_RETURN32:
     case AUT_RETURN64:
-      extractReturn(event, tok);
+      status = extractReturn(event, tok);
       break;
     case AUT_SOCKINET32:
     case AUT_SOCKINET128:
-      extractSocketInet(event, tok);
+      status = extractSocketInet(event, tok);
       break;
     }
-  } // for loop
-
-  return Status::success();
+    if (!status.succeeded()) {
+      return status;
+    }
+  }
+  return status;
 }
 
-Status OpenbsmConsumer::parseMessage() {
-
-  Status status;
-  Event event;
+void OpenbsmConsumer::parseMessage() {
 
   u_char *buffer = nullptr;
 
   int reclen = au_read_rec(audit_pipe, &buffer);
 
   if (reclen <= 0) {
-    return Status::failure("Could not openbsm fetch message");
+    d->logger.logMessage(IZeekLogger::Severity::Error,
+                         "Cannot read openbsm message: " +
+                             std::string(strerror(errno)));
+    return;
   }
 
   tokenstr_t tok;
@@ -288,36 +277,37 @@ Status OpenbsmConsumer::parseMessage() {
     case AUT_HEADER64_EX:
       event_id = tok.tt.hdr64_ex.e_type;
       break;
+    case AUT_SOCKUNIX:
+      // if current record of tokens contains unix socket just return
+      return;
     }
     tokens.push_back(tok);
     bytesread += tok.len;
   }
   if (event_filter_list.find(event_id) == event_filter_list.end()) {
     // Return early for unused event IDs.
-    return Status::success();
+    return;
   }
 
-  status = populateSocketEvent(event, tokens);
+  Event event;
+  auto status = populateSocketEvent(event, tokens);
 
   if (!status.succeeded()) {
     d->logger.logMessage(IZeekLogger::Severity::Error, status.message());
-
   } else {
     std::lock_guard<std::mutex> lock(d->event_list_mutex);
     d->event_list.push_back(std::move(event));
     d->event_list_cv.notify_all();
   }
-  return status;
 }
 
-Status OpenbsmConsumer::fetchEventsFromPipe() {
+void OpenbsmConsumer::fetchEventsFromPipe() {
 
   audit_pipe = fopen(AUDIT_PIPE_PATH, "r");
   if (audit_pipe == nullptr) {
-    throw Status::failure("The auditpipe couldn't be opened.");
+    throw Status::failure("Cannot open auditpipe: " +
+                          std::string(strerror(errno)));
   }
-  event_filter_list.insert(AUE_CONNECT);
-  event_filter_list.insert(AUE_BIND);
 
   fd_set fdset;
 
@@ -336,13 +326,15 @@ Status OpenbsmConsumer::fetchEventsFromPipe() {
     }
     if (rc < 0) {
       if (errno != EINTR) {
-        return Status::failure("Auditpipe cannot be read");
+        d->logger.logMessage(IZeekLogger::Severity::Error,
+                             "Cannot read auditpipe: " +
+                                 std::string(strerror(errno)));
       }
       continue;
     }
     parseMessage();
   }
-  return Status::success();
+  fclose(audit_pipe);
 }
 
 Status IOpenbsmConsumer::create(Ref &obj, IZeekLogger &logger,

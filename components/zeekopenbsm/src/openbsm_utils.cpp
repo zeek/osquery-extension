@@ -2,27 +2,32 @@
 
 namespace zeek {
 
-std::string getIpFromToken(const tokenstr_t &tok) {
+Status getIpFromToken(const au_socketinet_ex32_t &sock, std::string &ip_addr) {
   char ip_str[INET6_ADDRSTRLEN] = {0};
-  if (tok.tt.sockinet_ex32.family == 2) {
+  if (sock.family == 2) {
     struct in_addr ipv4 {};
-    ipv4.s_addr = static_cast<in_addr_t>(*tok.tt.sockinet_ex32.addr);
-    return std::string(inet_ntop(AF_INET, &ipv4, ip_str, INET6_ADDRSTRLEN));
-  } else {
+    ipv4.s_addr = static_cast<in_addr_t>(*sock.addr);
+    ip_addr = std::string(inet_ntop(AF_INET, &ipv4, ip_str, INET6_ADDRSTRLEN));
+    return Status::success();
+  } else if (sock.family == 26) {
     struct in6_addr ipv6 {};
-    memcpy(&ipv6, tok.tt.sockinet_ex32.addr, sizeof(ipv6));
-    return std::string(inet_ntop(AF_INET6, &ipv6, ip_str, INET6_ADDRSTRLEN));
+    memcpy(&ipv6, sock.addr, sizeof(ipv6));
+    ip_addr = std::string(inet_ntop(AF_INET6, &ipv6, ip_str, INET6_ADDRSTRLEN));
+    return Status::success();
   }
+  return Status::failure("Cannot parse IP address from given token due to "
+                         "unhandled socket family");
 }
 
-std::string getPathFromPid(int pid) {
+Status getPathFromPid(int pid, std::string &path) {
   char pathbuf[PROC_PIDPATHINFO_MAXSIZE] = {0};
 
   int ret = proc_pidpath(pid, pathbuf, sizeof(pathbuf));
   if (ret > 0) {
-    return std::string(pathbuf);
-  } else {
-    return "";
+    path = std::string(pathbuf);
+    return Status::success();
   }
+  return Status::failure("Cannot get path from pid: " +
+                         std::string(strerror(errno)));
 }
 } // namespace zeek
