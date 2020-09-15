@@ -37,7 +37,7 @@ TEST_CASE(
   tokens.push_back(tok_return);
 
   IOpenbsmConsumer::Event event;
-  auto status = OpenbsmConsumer::populateSocketEvent(event, tokens);
+  auto status = OpenbsmConsumer::populateEventFromTokens(event, tokens);
 
   REQUIRE(status.succeeded());
 
@@ -84,7 +84,7 @@ TEST_CASE("Populating IOpenbsmconsumer::Event given OpenBSM token for Connect "
   tokens.push_back(tok_return);
 
   IOpenbsmConsumer::Event event;
-  auto status = OpenbsmConsumer::populateSocketEvent(event, tokens);
+  auto status = OpenbsmConsumer::populateEventFromTokens(event, tokens);
 
   REQUIRE(status.succeeded());
 
@@ -132,7 +132,7 @@ TEST_CASE(
   tokens.push_back(tok_return);
 
   IOpenbsmConsumer::Event event;
-  auto status = OpenbsmConsumer::populateSocketEvent(event, tokens);
+  auto status = OpenbsmConsumer::populateEventFromTokens(event, tokens);
 
   REQUIRE(status.succeeded());
 
@@ -179,7 +179,7 @@ TEST_CASE("Populating IOpenbsmconsumer::Event given OpenBSM token for Bind "
   tokens.push_back(tok_return);
 
   IOpenbsmConsumer::Event event;
-  auto status = OpenbsmConsumer::populateSocketEvent(event, tokens);
+  auto status = OpenbsmConsumer::populateEventFromTokens(event, tokens);
 
   REQUIRE(status.succeeded());
 

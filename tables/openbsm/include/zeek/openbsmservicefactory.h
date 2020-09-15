@@ -1,7 +1,10 @@
 #pragma once
 
+#include <zeek/ivirtualdatabase.h>
 #include <zeek/izeekconfiguration.h>
+#include <zeek/izeeklogger.h>
 #include <zeek/izeekservicemanager.h>
+#include <zeek/status.h>
 
 namespace zeek {
 /// \brief Factory method for the EndpointSecurityServiceFactory object

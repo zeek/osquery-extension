@@ -2,8 +2,10 @@
 
 #include <bsm/libbsm.h>
 #include <set>
+#include <thread>
 #include <vector>
 #include <zeek/iopenbsmconsumer.h>
+#include <zeek/status.h>
 
 namespace zeek {
 class OpenbsmConsumer final : public IOpenbsmConsumer {
@@ -23,7 +25,10 @@ private:
   FILE *audit_pipe{nullptr};
 
   /// list of subscribed events
-  std::set<size_t> event_filter_list;
+  std::set<size_t> subscribed_event_ids;
+
+  /// producer thread object
+  std::thread producer_thread;
 
   /// \brief Constructor
   OpenbsmConsumer(IZeekLogger &logger, IZeekConfiguration &configuration);
@@ -40,9 +45,9 @@ private:
 public:
   friend class IOpenbsmConsumer;
 
-  void fetchEventsFromPipe();
-  static Status populateSocketEvent(Event &event,
-                                    const std::vector<tokenstr_t> &tokens);
-  void parseMessage();
+  void fetchRecordsFromAuditPipe();
+  static Status populateEventFromTokens(Event &event,
+                                        const std::vector<tokenstr_t> &tokens);
+  void parseRecordIntoTokens();
 };
 } // namespace zeek

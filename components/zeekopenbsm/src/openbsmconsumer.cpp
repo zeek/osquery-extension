@@ -1,13 +1,12 @@
 #include "openbsmconsumer.h"
 #include "openbsm_utils.h"
 
+#include <cerrno>
 #include <chrono>
 #include <condition_variable>
 #include <ctime>
-#include <errno.h>
 #include <future>
 #include <iomanip>
-#include <thread>
 
 namespace zeek {
 
@@ -33,13 +32,17 @@ OpenbsmConsumer::OpenbsmConsumer(IZeekLogger &logger,
                                  IZeekConfiguration &configuration)
     : d(new PrivateData(logger, configuration)) {
 
-  // start fetching events from pipe in a separate thread
-  event_filter_list.insert(AUE_CONNECT);
-  event_filter_list.insert(AUE_BIND);
-  std::thread{&OpenbsmConsumer::fetchEventsFromPipe, this}.detach();
+  subscribed_event_ids.insert(AUE_CONNECT);
+  subscribed_event_ids.insert(AUE_BIND);
+  // start reading events from pipe in a separate thread
+  producer_thread =
+      std::thread{&OpenbsmConsumer::fetchRecordsFromAuditPipe, this};
 }
 
-OpenbsmConsumer::~OpenbsmConsumer() { d->terminate_producer = true; }
+OpenbsmConsumer::~OpenbsmConsumer() {
+  d->terminate_producer = true;
+  producer_thread.join();
+}
 
 Status OpenbsmConsumer::getEvents(EventList &event_list) {
   event_list = {};
@@ -206,9 +209,8 @@ Status OpenbsmConsumer::extractSocketInet(IOpenbsmConsumer::Event &event,
   return Status::success();
 }
 
-Status
-OpenbsmConsumer::populateSocketEvent(Event &event,
-                                     const std::vector<tokenstr_t> &tokens) {
+Status OpenbsmConsumer::populateEventFromTokens(
+    Event &event, const std::vector<tokenstr_t> &tokens) {
 
   Status status = Status::success();
   for (const auto &tok : tokens) {
@@ -241,29 +243,32 @@ OpenbsmConsumer::populateSocketEvent(Event &event,
   return status;
 }
 
-void OpenbsmConsumer::parseMessage() {
+void OpenbsmConsumer::parseRecordIntoTokens() {
 
   u_char *buffer = nullptr;
 
-  int reclen = au_read_rec(audit_pipe, &buffer);
+  int record_len = au_read_rec(audit_pipe, &buffer);
 
-  if (reclen <= 0) {
+  if (record_len <= 0) {
     d->logger.logMessage(IZeekLogger::Severity::Error,
-                         "Cannot read openbsm message: " +
+                         "Failed to read openbsm message: " +
                              std::string(strerror(errno)));
     return;
   }
 
   tokenstr_t tok;
   std::vector<tokenstr_t> tokens{};
-  tokens.reserve(12);
+  std::optional<u_int16_t> event_id;
 
-  auto event_id = 0;
   auto bytesread = 0;
-  while (bytesread < reclen) {
-    if (au_fetch_tok(&tok, buffer + bytesread, reclen - bytesread) == -1) {
+  while (bytesread < record_len) {
+    if (au_fetch_tok(&tok, buffer + bytesread, record_len - bytesread) == -1) {
+      d->logger.logMessage(IZeekLogger::Severity::Error,
+                           "Failed to fetch token from the given buffer: " +
+                               std::string(strerror(errno)));
       break;
     }
+    tokens.push_back(tok);
     switch (tok.id) {
     case AUT_HEADER32:
       event_id = tok.tt.hdr32.e_type;
@@ -278,19 +283,22 @@ void OpenbsmConsumer::parseMessage() {
       event_id = tok.tt.hdr64_ex.e_type;
       break;
     case AUT_SOCKUNIX:
-      // if current record of tokens contains unix socket just return
+      // if current record of tokens contains unix socket then just return
       return;
     }
-    tokens.push_back(tok);
     bytesread += tok.len;
   }
-  if (event_filter_list.find(event_id) == event_filter_list.end()) {
-    // Return early for unused event IDs.
+
+  assert(event_id);
+
+  if (subscribed_event_ids.find(event_id.value()) ==
+      subscribed_event_ids.end()) {
+    // we will not store current record in the event_list
     return;
   }
 
   Event event;
-  auto status = populateSocketEvent(event, tokens);
+  auto status = populateEventFromTokens(event, tokens);
 
   if (!status.succeeded()) {
     d->logger.logMessage(IZeekLogger::Severity::Error, status.message());
@@ -301,7 +309,7 @@ void OpenbsmConsumer::parseMessage() {
   }
 }
 
-void OpenbsmConsumer::fetchEventsFromPipe() {
+void OpenbsmConsumer::fetchRecordsFromAuditPipe() {
 
   audit_pipe = fopen(AUDIT_PIPE_PATH, "r");
   if (audit_pipe == nullptr) {
@@ -332,7 +340,7 @@ void OpenbsmConsumer::fetchEventsFromPipe() {
       }
       continue;
     }
-    parseMessage();
+    parseRecordIntoTokens();
   }
   fclose(audit_pipe);
 }

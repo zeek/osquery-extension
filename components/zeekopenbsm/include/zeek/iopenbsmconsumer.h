@@ -7,6 +7,7 @@
 
 #include <zeek/izeekconfiguration.h>
 #include <zeek/izeeklogger.h>
+#include <zeek/status.h>
 
 namespace zeek {
 /// \brief OpenBSM consumer (interface)
