@@ -293,7 +293,7 @@ void OpenbsmConsumer::parseRecordIntoTokens() {
 
   if (subscribed_event_ids.find(event_id.value()) ==
       subscribed_event_ids.end()) {
-    // we will not store current record in the event_list
+    // Skip events not subscribed to.
     return;
   }
 
