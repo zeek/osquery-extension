@@ -1,9 +1,12 @@
 #pragma once
 
+#include <memory>
+#include <string>
 #include <zeek/iaudispconsumer.h>
 #include <zeek/ivirtualtable.h>
 #include <zeek/izeekconfiguration.h>
 #include <zeek/izeeklogger.h>
+#include <zeek/status.h>
 
 namespace zeek {
 /// \brief Provides the file_events table
