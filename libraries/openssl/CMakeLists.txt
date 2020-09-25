@@ -138,19 +138,6 @@ function(zeekAgentLibrariesOpenSSL)
     message(FATAL_ERROR "Unsupported system")
   endif()
 
-  add_library(thirdparty_openssl_libcrypto STATIC IMPORTED GLOBAL)
-  set_target_properties(thirdparty_openssl_libcrypto PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES
-      "${install_directory}/include"
-
-    IMPORTED_LOCATION
-      "${install_directory}/${lib_folder_name}/libcrypto.${lib_extension}"
-  )
-
-  add_dependencies(thirdparty_openssl_libcrypto
-    thirdparty_openssl_builder
-  )
-
   add_library(thirdparty_openssl_libssl STATIC IMPORTED GLOBAL)
   set_target_properties(thirdparty_openssl_libssl PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES
@@ -162,6 +149,20 @@ function(zeekAgentLibrariesOpenSSL)
 
   add_dependencies(thirdparty_openssl_libssl
     thirdparty_openssl_builder
+  )
+
+  add_library(thirdparty_openssl_libcrypto STATIC IMPORTED GLOBAL)
+  set_target_properties(thirdparty_openssl_libcrypto PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES
+      "${install_directory}/include"
+
+    IMPORTED_LOCATION
+      "${install_directory}/${lib_folder_name}/libcrypto.${lib_extension}"
+  )
+
+  add_dependencies(thirdparty_openssl_libcrypto
+    thirdparty_openssl_builder
+    thirdparty_openssl_libssl
   )
 
   add_library(thirdparty_openssl INTERFACE)
