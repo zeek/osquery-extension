@@ -162,8 +162,9 @@ function(zeekAgentLibrariesOpenSSL)
 
   add_dependencies(thirdparty_openssl_libcrypto
     thirdparty_openssl_builder
-    thirdparty_openssl_libssl
   )
+
+  target_link_libraries(thirdparty_openssl_libcrypto thirdparty_openssl_libssl)
 
   add_library(thirdparty_openssl INTERFACE)
   target_link_libraries(thirdparty_openssl INTERFACE
