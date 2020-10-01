@@ -26,14 +26,14 @@ function(zeekAgentLibrariesOpenSSL)
         "https://www.openssl.org/source/openssl-${openssl_version}.tar.gz"
         "https://www.openssl.org/source/old/${openssl_truncated_version}/openssl-${openssl_version}.tar.gz"
 
-      CONFIGURE_COMMAND 
+      CONFIGURE_COMMAND
         "${CMAKE_COMMAND}" -E env CC="${CMAKE_C_COMPILER}" AR="${CMAKE_AR}"
         perl ./Configure linux-x86_64 no-ssl2 no-ssl3 no-asm no-shared no-weak-ssl-ciphers
               zlib-dynamic enable-cms "--with-zlib-include=${zlib_include_path}"
               "--with-zlib-lib=$<TARGET_FILE:thirdparty_zlib>" "--prefix=/"
               "--openssldir=/etc/openssl" -fPIC --sysroot=${CMAKE_SYSROOT}
               -l:libunwind.a -lpthread
-      
+
       BUILD_COMMAND
         make depend &&
         make -j 2
@@ -65,7 +65,7 @@ function(zeekAgentLibrariesOpenSSL)
         "https://www.openssl.org/source/openssl-${openssl_version}.tar.gz"
         "https://www.openssl.org/source/old/${openssl_truncated_version}/openssl-${openssl_version}.tar.gz"
 
-      CONFIGURE_COMMAND 
+      CONFIGURE_COMMAND
         "${CMAKE_COMMAND}" -E env CC="${CMAKE_C_COMPILER}" AR="${CMAKE_AR}"
         perl ./Configure darwin64-x86_64-cc no-ssl2 no-ssl3 no-asm no-shared no-weak-ssl-ciphers
               zlib-dynamic enable-cms "--with-zlib-include=${zlib_include_path}"
@@ -105,7 +105,7 @@ function(zeekAgentLibrariesOpenSSL)
         "https://www.openssl.org/source/openssl-${openssl_version}.tar.gz"
         "https://www.openssl.org/source/old/${openssl_truncated_version}/openssl-${openssl_version}.tar.gz"
 
-      CONFIGURE_COMMAND 
+      CONFIGURE_COMMAND
         "${CMAKE_COMMAND}" -E env "${PERL_EXECUTABLE}" Configure VC-WIN64A no-ssl2 no-ssl3 no-asm no-shared
                                                        no-weak-ssl-ciphers zlib-dynamic enable-cms
                                                        "--with-zlib-include=${zlib_include_path}"
@@ -166,8 +166,8 @@ function(zeekAgentLibrariesOpenSSL)
 
   add_library(thirdparty_openssl INTERFACE)
   target_link_libraries(thirdparty_openssl INTERFACE
-    thirdparty_openssl_libcrypto
     thirdparty_openssl_libssl
+    thirdparty_openssl_libcrypto
   )
 endfunction()
 
