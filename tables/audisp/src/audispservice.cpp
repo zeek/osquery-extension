@@ -1,4 +1,5 @@
 #include "audispservice.h"
+#include "fileeventstableplugin.h"
 #include "processeventstableplugin.h"
 #include "socketeventstableplugin.h"
 
@@ -28,6 +29,7 @@ struct AudispService::PrivateData final {
 
   IVirtualTable::Ref process_events_table;
   IVirtualTable::Ref socket_events_table;
+  IVirtualTable::Ref file_events_table;
 };
 
 AudispService::~AudispService() {
@@ -38,6 +40,9 @@ AudispService::~AudispService() {
 
   status = d->virtual_database.unregisterTable(d->socket_events_table->name());
   assert(status.succeeded() && "Failed to unregister the socket_events table");
+
+  status = d->virtual_database.unregisterTable(d->file_events_table->name());
+  assert(status.succeeded() && "Failed to unregister the file_events table");
 }
 
 const std::string &AudispService::name() const { return kServiceName; }
@@ -48,6 +53,9 @@ Status AudispService::exec(std::atomic_bool &terminate) {
 
   auto &socket_events_table_impl =
       *static_cast<SocketEventsTablePlugin *>(d->socket_events_table.get());
+
+  auto &file_events_table_impl =
+      *static_cast<FileEventsTablePlugin *>(d->file_events_table.get());
 
   while (!terminate) {
     auto status = d->audisp_consumer->processEvents();
@@ -75,6 +83,14 @@ Status AudispService::exec(std::atomic_bool &terminate) {
       d->logger.logMessage(
           IZeekLogger::Severity::Error,
           "The socket_events table failed to process some events: " +
+              status.message());
+    }
+
+    status = file_events_table_impl.processEvents(event_list);
+    if (!status.succeeded()) {
+      d->logger.logMessage(
+          IZeekLogger::Severity::Error,
+          "The file_events table failed to process some events: " +
               status.message());
     }
   }
@@ -106,12 +122,23 @@ AudispService::AudispService(IVirtualDatabase &virtual_database,
     throw status;
   }
 
+  status = FileEventsTablePlugin::create(d->file_events_table, configuration,
+                                         logger);
+  if (!status.succeeded()) {
+    throw status;
+  }
+
   status = d->virtual_database.registerTable(d->process_events_table);
   if (!status.succeeded()) {
     throw status;
   }
 
   status = d->virtual_database.registerTable(d->socket_events_table);
+  if (!status.succeeded()) {
+    throw status;
+  }
+
+  status = d->virtual_database.registerTable(d->file_events_table);
   if (!status.succeeded()) {
     throw status;
   }

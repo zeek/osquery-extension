@@ -54,21 +54,23 @@ SCENARIO("Row generation in the socket_events table",
       REQUIRE(status.succeeded());
 
       THEN("rows are generated correctly") {
-        // clang-format off
         static ExpectedValueList kExpectedConnectColumnList = {
-          { "action", "connect" },
-          { "pid", static_cast<std::int64_t>(38031) },
-          { "path", "/usr/bin/curl" },
-          { "fd", static_cast<std::int64_t>(16) },
-          { "auid", static_cast<std::int64_t>(1000) },
-          { "success", static_cast<std::int64_t>(1) },
-          { "family", static_cast<std::int64_t>(2) },
-          { "local_address", { "" } },
-          { "remote_address", "127.0.0.1" },
-          { "local_port", { static_cast<std::int64_t>(0) } },
-          { "remote_port", static_cast<std::int64_t>(443) }
-        };
-        // clang-format on
+            {"syscall", "connect"},
+            {"pid", kConnectAuditEvent.syscall_data.process_id},
+            {"ppid", kConnectAuditEvent.syscall_data.parent_process_id},
+            {"auid", kConnectAuditEvent.syscall_data.auid},
+            {"uid", kConnectAuditEvent.syscall_data.uid},
+            {"euid", kConnectAuditEvent.syscall_data.euid},
+            {"gid", kConnectAuditEvent.syscall_data.gid},
+            {"egid", kConnectAuditEvent.syscall_data.egid},
+            {"exe", "/usr/bin/curl"},
+            {"fd", static_cast<std::int64_t>(16)},
+            {"success", static_cast<std::int64_t>(1)},
+            {"family", static_cast<std::int64_t>(2)},
+            {"local_address", {""}},
+            {"remote_address", "127.0.0.1"},
+            {"local_port", {static_cast<std::int64_t>(0)}},
+            {"remote_port", static_cast<std::int64_t>(443)}};
 
         REQUIRE(row.size() == kExpectedConnectColumnList.size() + 1);
         REQUIRE(row.count("time") != 0U);
@@ -125,21 +127,23 @@ SCENARIO("Row generation in the socket_events table",
       REQUIRE(status.succeeded());
 
       THEN("rows are generated correctly") {
-        // clang-format off
         static ExpectedValueList kExpectedBindColumnList = {
-          { "action", "bind" },
-          { "pid", static_cast<std::int64_t>(38031) },
-          { "path", "/usr/bin/curl" },
-          { "fd", static_cast<std::int64_t>(16) },
-          { "auid", static_cast<std::int64_t>(1000) },
-          { "success", static_cast<std::int64_t>(1) },
-          { "family", static_cast<std::int64_t>(2) },
-          { "local_address", "0.0.0.0" },
-          { "remote_address", { "" } },
-          { "local_port", static_cast<std::int64_t>(8080) },
-          { "remote_port", { static_cast<std::int64_t>(0) } }
-        };
-        // clang-format on
+            {"syscall", "bind"},
+            {"pid", kBindAuditEvent.syscall_data.process_id},
+            {"ppid", kBindAuditEvent.syscall_data.parent_process_id},
+            {"auid", kBindAuditEvent.syscall_data.auid},
+            {"uid", kBindAuditEvent.syscall_data.uid},
+            {"euid", kBindAuditEvent.syscall_data.euid},
+            {"gid", kBindAuditEvent.syscall_data.gid},
+            {"egid", kBindAuditEvent.syscall_data.egid},
+            {"exe", "/usr/bin/curl"},
+            {"fd", static_cast<std::int64_t>(16)},
+            {"success", static_cast<std::int64_t>(1)},
+            {"family", static_cast<std::int64_t>(2)},
+            {"local_address", "0.0.0.0"},
+            {"remote_address", {""}},
+            {"local_port", static_cast<std::int64_t>(8080)},
+            {"remote_port", {static_cast<std::int64_t>(0)}}};
 
         REQUIRE(row.size() == kExpectedBindColumnList.size() + 1);
         REQUIRE(row.count("time") != 0U);

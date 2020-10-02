@@ -19,8 +19,6 @@ struct SocketEventsTablePlugin::PrivateData final {
 Status SocketEventsTablePlugin::create(Ref &obj,
                                        IZeekConfiguration &configuration,
                                        IZeekLogger &logger) {
-  obj.reset();
-
   try {
     auto ptr = new SocketEventsTablePlugin(configuration, logger);
     obj.reset(ptr);
@@ -44,22 +42,25 @@ const std::string &SocketEventsTablePlugin::name() const {
 }
 
 const SocketEventsTablePlugin::Schema &SocketEventsTablePlugin::schema() const {
-  // clang-format off
+
   static const Schema kTableSchema = {
-    { "action", IVirtualTable::ColumnType::String },
-    { "pid", IVirtualTable::ColumnType::Integer },
-    { "path", IVirtualTable::ColumnType::String },
-    { "fd", IVirtualTable::ColumnType::String },
-    { "auid", IVirtualTable::ColumnType::Integer },
-    { "success", IVirtualTable::ColumnType::Integer },
-    { "family", IVirtualTable::ColumnType::Integer },
-    { "local_address", IVirtualTable::ColumnType::String },
-    { "remote_address", IVirtualTable::ColumnType::String },
-    { "local_port", IVirtualTable::ColumnType::Integer },
-    { "remote_port", IVirtualTable::ColumnType::Integer },
-    { "time", IVirtualTable::ColumnType::Integer }
-  };
-  // clang-format on
+      {"syscall", IVirtualTable::ColumnType::String},
+      {"pid", IVirtualTable::ColumnType::Integer},
+      {"ppid", IVirtualTable::ColumnType::Integer},
+      {"auid", IVirtualTable::ColumnType::Integer},
+      {"uid", IVirtualTable::ColumnType::Integer},
+      {"euid", IVirtualTable::ColumnType::Integer},
+      {"gid", IVirtualTable::ColumnType::Integer},
+      {"egid", IVirtualTable::ColumnType::Integer},
+      {"exe", IVirtualTable::ColumnType::String},
+      {"fd", IVirtualTable::ColumnType::String},
+      {"success", IVirtualTable::ColumnType::Integer},
+      {"family", IVirtualTable::ColumnType::Integer},
+      {"local_address", IVirtualTable::ColumnType::String},
+      {"remote_address", IVirtualTable::ColumnType::String},
+      {"local_port", IVirtualTable::ColumnType::Integer},
+      {"remote_port", IVirtualTable::ColumnType::Integer},
+      {"time", IVirtualTable::ColumnType::Integer}};
 
   return kTableSchema;
 }
@@ -86,36 +87,27 @@ Status SocketEventsTablePlugin::processEvents(
     }
 
     if (!row.empty()) {
-      generated_row_list.push_back(std::move(row));
+      {
+        std::lock_guard<std::mutex> lock(d->row_list_mutex);
+        d->row_list.push_back(row);
+      }
     }
   }
 
-  {
-    std::lock_guard<std::mutex> lock(d->row_list_mutex);
+  if (d->row_list.size() > d->max_queued_row_count) {
 
-    // clang-format off
-    d->row_list.insert(
-      d->row_list.end(),
-      std::make_move_iterator(generated_row_list.begin()), 
-      std::make_move_iterator(generated_row_list.end())
-    );
-    // clang-format on
+    auto rows_to_remove = d->row_list.size() - d->max_queued_row_count;
 
-    if (d->row_list.size() > d->max_queued_row_count) {
-      auto rows_to_remove = d->row_list.size() - d->max_queued_row_count;
+    d->logger.logMessage(IZeekLogger::Severity::Warning,
+                         "socket_events: Dropping " +
+                             std::to_string(rows_to_remove) +
+                             " rows (max row count is set to " +
+                             std::to_string(d->max_queued_row_count) + ")");
 
-      d->logger.logMessage(IZeekLogger::Severity::Warning,
-                           "socket_events: Dropping " +
-                               std::to_string(rows_to_remove) +
-                               " rows (max row count is set to " +
-                               std::to_string(d->max_queued_row_count));
-
-      // clang-format off
-      d->row_list.erase(
-        d->row_list.begin(),
-        std::next(d->row_list.begin(), rows_to_remove)
-      );
-      // clang-format on
+    {
+      std::lock_guard<std::mutex> lock(d->row_list_mutex);
+      d->row_list.erase(d->row_list.begin(),
+                        std::next(d->row_list.begin(), rows_to_remove));
     }
   }
 
@@ -133,15 +125,15 @@ Status SocketEventsTablePlugin::generateRow(
     Row &row, const IAudispConsumer::AuditEvent &audit_event) {
   row = {};
 
-  std::string action;
+  std::string syscall_name;
 
   switch (audit_event.syscall_data.type) {
   case IAudispConsumer::SyscallRecordData::Type::Bind:
-    action = "bind";
+    syscall_name = "bind";
     break;
 
   case IAudispConsumer::SyscallRecordData::Type::Connect:
-    action = "connect";
+    syscall_name = "connect";
     break;
 
   default:
@@ -155,14 +147,18 @@ Status SocketEventsTablePlugin::generateRow(
   const auto &syscall_data = audit_event.syscall_data;
   const auto &sockaddr_data = audit_event.sockaddr_data.value();
 
-  row["action"] = action;
+  row["syscall"] = std::move(syscall_name);
   row["pid"] = syscall_data.process_id;
-  row["path"] = syscall_data.exe;
+  row["ppid"] = syscall_data.parent_process_id;
+  row["auid"] = syscall_data.auid;
+  row["uid"] = syscall_data.uid;
+  row["euid"] = syscall_data.euid;
+  row["gid"] = syscall_data.gid;
+  row["egid"] = syscall_data.egid;
+  row["exe"] = syscall_data.exe;
 
   auto fd = std::strtoll(syscall_data.a0.c_str(), nullptr, 16U);
   row["fd"] = static_cast<std::int64_t>(fd);
-
-  row["auid"] = syscall_data.auid;
 
   row["success"] =
       static_cast<std::int64_t>(audit_event.syscall_data.succeeded ? 1 : 0);

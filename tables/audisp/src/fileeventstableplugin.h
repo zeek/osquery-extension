@@ -1,13 +1,16 @@
 #pragma once
 
+#include <memory>
+#include <string>
 #include <zeek/iaudispconsumer.h>
 #include <zeek/ivirtualtable.h>
 #include <zeek/izeekconfiguration.h>
 #include <zeek/izeeklogger.h>
+#include <zeek/status.h>
 
 namespace zeek {
-/// \brief Provides the process_events table
-class ProcessEventsTablePlugin final : public IVirtualTable {
+/// \brief Provides the file_events table
+class FileEventsTablePlugin final : public IVirtualTable {
   struct PrivateData;
   std::unique_ptr<PrivateData> d;
 
@@ -21,7 +24,7 @@ public:
                        IZeekLogger &logger);
 
   /// \brief Destructor
-  virtual ~ProcessEventsTablePlugin() override;
+  virtual ~FileEventsTablePlugin() override;
 
   /// \return The table name
   virtual const std::string &name() const override;
@@ -51,7 +54,12 @@ protected:
   /// \brief Constructor
   /// \param configuration An initialized configuration object
   /// \param logger An initialized logger object
-  ProcessEventsTablePlugin(IZeekConfiguration &configuration,
-                           IZeekLogger &logger);
+  FileEventsTablePlugin(IZeekConfiguration &configuration, IZeekLogger &logger);
+
+  /// \brief Combines working directory with file path
+  /// \param cwd current directory path
+  /// \param path file path
+  static std::string CombinePaths(const std::string &cwd,
+                                  const std::string &path);
 };
 } // namespace zeek

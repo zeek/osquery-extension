@@ -142,7 +142,6 @@ void AudispConsumer::auparseCallback(auparse_cb_event_t event_type) {
 
   while (d->auparse_interface->nextRecord() > 0) {
     record_type = d->auparse_interface->getType();
-    Status status;
 
     switch (record_type) {
     case AUDIT_EXECVE:
@@ -160,6 +159,12 @@ void AudispConsumer::auparseCallback(auparse_cb_event_t event_type) {
 
     case AUDIT_PATH:
       status = parsePathRecord(path_data, d->auparse_interface);
+
+      if (!is_execve_syscall) {
+        audit_event.path_data = std::move(path_data);
+        path_data = {};
+      }
+
       break;
 
     case AUDIT_SOCKADDR:
@@ -253,6 +258,9 @@ AudispConsumer::parseSyscallRecord(std::optional<SyscallRecordData> &data,
     { __NR_clone, SyscallRecordData::Type::Clone },
     { __NR_bind, SyscallRecordData::Type::Bind },
     { __NR_connect, SyscallRecordData::Type::Connect },
+    { __NR_open, SyscallRecordData::Type::Open },
+    { __NR_openat, SyscallRecordData::Type::OpenAt },
+    { __NR_creat, SyscallRecordData::Type::Create },
   };
   // clang-format on
 
@@ -470,6 +478,7 @@ Status AudispConsumer::parsePathRecord(PathRecordData &data,
   std::int64_t mode{0};
   std::int64_t ouid{0};
   std::int64_t ogid{0};
+  std::int64_t inode{0};
 
   bool first_record{false};
   std::size_t parsed_field_count{0U};
@@ -482,18 +491,20 @@ Status AudispConsumer::parsePathRecord(PathRecordData &data,
       if (!convertAuditString(path_value, field_value)) {
         path_value = field_value;
       }
-
       ++parsed_field_count;
 
     } else if (std::strcmp(field_name, "item") == 0) {
       if (std::strcmp(field_value, "0") == 0) {
         first_record = true;
       }
-
       ++parsed_field_count;
 
     } else if (std::strcmp(field_name, "mode") == 0) {
       mode = std::strtoll(field_value, nullptr, 8);
+      ++parsed_field_count;
+
+    } else if (std::strcmp(field_name, "inode") == 0) {
+      inode = std::strtoll(field_value, nullptr, 8);
       ++parsed_field_count;
 
     } else if (std::strcmp(field_name, "ouid") == 0) {
@@ -505,12 +516,12 @@ Status AudispConsumer::parsePathRecord(PathRecordData &data,
       ++parsed_field_count;
     }
 
-    if (parsed_field_count == 5U) {
+    if (parsed_field_count == 6U) {
       break;
     }
   } while (auparse->nextField() > 0);
 
-  if (parsed_field_count != 5U) {
+  if (parsed_field_count != 6U) {
     return Status::failure(
         "One or more fields are missing from the AUDIT_PATH record");
   }
@@ -519,7 +530,7 @@ Status AudispConsumer::parsePathRecord(PathRecordData &data,
     data = {};
   }
 
-  data.push_back({path_value, mode, ouid, ogid});
+  data.push_back({path_value, mode, ouid, ogid, inode});
   return Status::success();
 }
 

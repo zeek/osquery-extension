@@ -13,7 +13,18 @@ public:
   /// \brief SYSCALL record data
   struct SyscallRecordData final {
     /// \brief Supported syscalls
-    enum class Type { Execve, ExecveAt, Fork, VFork, Clone, Bind, Connect };
+    enum class Type {
+      Execve,
+      ExecveAt,
+      Fork,
+      VFork,
+      Clone,
+      Bind,
+      Connect,
+      Open,
+      OpenAt,
+      Create
+    };
 
     /// \brief Event type
     Type type;
@@ -83,6 +94,9 @@ public:
 
     /// \brief Owner group id
     std::int64_t ogid{0};
+
+    /// \brief File Inode
+    std::int64_t inode{0};
   };
 
   /// \brief A list of PATH records

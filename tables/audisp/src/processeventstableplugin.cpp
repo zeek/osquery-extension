@@ -19,7 +19,6 @@ struct ProcessEventsTablePlugin::PrivateData final {
 Status ProcessEventsTablePlugin::create(Ref &obj,
                                         IZeekConfiguration &configuration,
                                         IZeekLogger &logger) {
-  obj.reset();
 
   try {
     auto ptr = new ProcessEventsTablePlugin(configuration, logger);
@@ -45,35 +44,34 @@ const std::string &ProcessEventsTablePlugin::name() const {
 
 const ProcessEventsTablePlugin::Schema &
 ProcessEventsTablePlugin::schema() const {
-  // clang-format off
   static const Schema kTableSchema = {
-    // Present in the AUDIT_SYSCALL record
-    { "syscall", IVirtualTable::ColumnType::String },
-    { "pid", IVirtualTable::ColumnType::Integer },
-    { "parent", IVirtualTable::ColumnType::Integer },
-    { "auid", IVirtualTable::ColumnType::Integer },
-    { "uid", IVirtualTable::ColumnType::Integer },
-    { "euid", IVirtualTable::ColumnType::Integer },
-    { "gid", IVirtualTable::ColumnType::Integer },
-    { "egid", IVirtualTable::ColumnType::Integer },
-    { "owner_uid", IVirtualTable::ColumnType::Integer },
-    { "owner_gid", IVirtualTable::ColumnType::Integer },
+      // Present in the AUDIT_SYSCALL record
+      {"syscall", IVirtualTable::ColumnType::String},
+      {"pid", IVirtualTable::ColumnType::Integer},
+      {"ppid", IVirtualTable::ColumnType::Integer},
+      {"auid", IVirtualTable::ColumnType::Integer},
+      {"uid", IVirtualTable::ColumnType::Integer},
+      {"euid", IVirtualTable::ColumnType::Integer},
+      {"gid", IVirtualTable::ColumnType::Integer},
+      {"egid", IVirtualTable::ColumnType::Integer},
+      {"exe", IVirtualTable::ColumnType::String},
+      {"exit", IVirtualTable::ColumnType::Integer},
 
-    // Present in the AUDIT_EXECVE record(s)
-    { "cmdline_size", IVirtualTable::ColumnType::Integer },
-    { "cmdline", IVirtualTable::ColumnType::String },
+      // Present in the AUDIT_EXECVE record(s)
+      {"cmdline", IVirtualTable::ColumnType::String},
 
-    // Present in the AUDIT_PATH record(s)
-    { "path", IVirtualTable::ColumnType::String },
-    { "mode", IVirtualTable::ColumnType::String },
-    
-    // Present in the AUDIT_CWD record
-    { "cwd", IVirtualTable::ColumnType::String },
-    
-    // Custom
-    { "time", IVirtualTable::ColumnType::Integer }
-  };
-  // clang-format on
+      // Present in the AUDIT_PATH record(s)
+      {"path", IVirtualTable::ColumnType::String},
+      {"mode", IVirtualTable::ColumnType::Integer},
+      {"inode", IVirtualTable::ColumnType::Integer},
+      {"ouid", IVirtualTable::ColumnType::Integer},
+      {"ogid", IVirtualTable::ColumnType::Integer},
+
+      // Present in the AUDIT_CWD record
+      {"cwd", IVirtualTable::ColumnType::String},
+
+      // Custom
+      {"time", IVirtualTable::ColumnType::Integer}};
 
   return kTableSchema;
 }
@@ -100,20 +98,16 @@ Status ProcessEventsTablePlugin::processEvents(
     }
 
     if (!row.empty()) {
-      generated_row_list.push_back(std::move(row));
+      {
+        std::lock_guard<std::mutex> lock(d->row_list_mutex);
+        d->row_list.push_back(row);
+      }
     }
   }
 
-  {
-    std::lock_guard<std::mutex> lock(d->row_list_mutex);
+  if (d->row_list.size() > d->max_queued_row_count) {
 
-    // clang-format off
-    d->row_list.insert(
-      d->row_list.end(),
-      std::make_move_iterator(generated_row_list.begin()), 
-      std::make_move_iterator(generated_row_list.end())
-    );
-    // clang-format on
+    std::lock_guard<std::mutex> lock(d->row_list_mutex);
 
     if (d->row_list.size() > d->max_queued_row_count) {
       auto rows_to_remove = d->row_list.size() - d->max_queued_row_count;
@@ -122,14 +116,10 @@ Status ProcessEventsTablePlugin::processEvents(
                            "process_events: Dropping " +
                                std::to_string(rows_to_remove) +
                                " rows (max row count is set to " +
-                               std::to_string(d->max_queued_row_count));
+                               std::to_string(d->max_queued_row_count) + ")");
 
-      // clang-format off
-      d->row_list.erase(
-        d->row_list.begin(),
-        std::next(d->row_list.begin(), rows_to_remove)
-      );
-      // clang-format on
+      d->row_list.erase(d->row_list.begin(),
+                        std::next(d->row_list.begin(), rows_to_remove));
     }
   }
 
@@ -152,7 +142,7 @@ Status ProcessEventsTablePlugin::generateRow(
   }
 
   const auto &syscall_data = audit_event.syscall_data;
-  const char *syscall_name{nullptr};
+  std::string syscall_name;
 
   switch (syscall_data.type) {
   case IAudispConsumer::SyscallRecordData::Type::Execve:
@@ -174,8 +164,11 @@ Status ProcessEventsTablePlugin::generateRow(
   case IAudispConsumer::SyscallRecordData::Type::Clone:
     syscall_name = "clone";
     break;
-
-  default:
+  case IAudispConsumer::SyscallRecordData::Type::Bind:
+  case IAudispConsumer::SyscallRecordData::Type::Connect:
+  case IAudispConsumer::SyscallRecordData::Type::Open:
+  case IAudispConsumer::SyscallRecordData::Type::OpenAt:
+  case IAudispConsumer::SyscallRecordData::Type::Create:
     return Status::success();
   }
 
@@ -185,15 +178,16 @@ Status ProcessEventsTablePlugin::generateRow(
   auto time_value = static_cast<std::int64_t>(current_timestamp.count());
 
   row["time"] = time_value;
-  row["syscall"] = syscall_name;
+  row["syscall"] = std::move(syscall_name);
   row["pid"] = syscall_data.process_id;
-  row["parent"] = syscall_data.parent_process_id;
-  row["pid"] = syscall_data.process_id;
+  row["ppid"] = syscall_data.parent_process_id;
   row["auid"] = syscall_data.auid;
   row["uid"] = syscall_data.uid;
   row["euid"] = syscall_data.euid;
   row["gid"] = syscall_data.gid;
   row["egid"] = syscall_data.egid;
+  row["exe"] = syscall_data.exe;
+  row["exit"] = syscall_data.exit_code;
 
   if (syscall_data.type == IAudispConsumer::SyscallRecordData::Type::Execve ||
       syscall_data.type == IAudispConsumer::SyscallRecordData::Type::ExecveAt) {
@@ -224,15 +218,15 @@ Status ProcessEventsTablePlugin::generateRow(
     }
 
     row["cmdline"] = command_line;
-    row["cmdline_size"] = static_cast<std::int64_t>(command_line.size());
 
     const auto &path_record = audit_event.path_data.value();
     const auto &last_path_entry = path_record.front();
 
     row["path"] = last_path_entry.path;
     row["mode"] = last_path_entry.mode;
-    row["owner_uid"] = last_path_entry.ouid;
-    row["owner_gid"] = last_path_entry.ogid;
+    row["inode"] = last_path_entry.inode;
+    row["ouid"] = last_path_entry.ouid;
+    row["ogid"] = last_path_entry.ogid;
 
     const auto &cwd_data = audit_event.cwd_data.value();
 
@@ -247,12 +241,12 @@ Status ProcessEventsTablePlugin::generateRow(
     // we'll just set these values to either zero or an empty string
     std::int64_t null_value{0};
 
-    row["owner_uid"] = {null_value};
-    row["owner_gid"] = {null_value};
     row["cmdline"] = {""};
-    row["cmdline_size"] = {null_value};
     row["path"] = {""};
     row["mode"] = {null_value};
+    row["inode"] = {null_value};
+    row["ouid"] = {null_value};
+    row["ogid"] = {null_value};
     row["cwd"] = {""};
   }
 
