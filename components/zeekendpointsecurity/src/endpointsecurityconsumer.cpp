@@ -4,13 +4,12 @@
 #include <chrono>
 #include <condition_variable>
 #include <ctime>
+#include <filesystem>
 #include <iomanip>
-#include <mutex>
 #include <optional>
 #include <sstream>
 #include <thread>
 
-#include <EndpointSecurity/EndpointSecurity.h>
 #include <bsm/libbsm.h>
 
 namespace zeek {
@@ -65,7 +64,7 @@ EndpointSecurityConsumer::EndpointSecurityConsumer(
           return;
         }
 
-        endpointSecurityCallback(message);
+        endpointSecurityCallback(*message);
       });
 
   // clang-format off
@@ -108,8 +107,9 @@ EndpointSecurityConsumer::EndpointSecurityConsumer(
   }
   // clang-format on
 
-  std::array<es_event_type_t, 2> event_list = {ES_EVENT_TYPE_NOTIFY_EXEC,
-                                               ES_EVENT_TYPE_NOTIFY_FORK};
+  std::array<es_event_type_t, 4> event_list = {
+      ES_EVENT_TYPE_NOTIFY_EXEC, ES_EVENT_TYPE_NOTIFY_FORK,
+      ES_EVENT_TYPE_NOTIFY_OPEN, ES_EVENT_TYPE_NOTIFY_CREATE};
 
   if (es_subscribe(d->es_client, event_list.data(), event_list.size()) !=
       ES_RETURN_SUCCESS) {
@@ -120,17 +120,25 @@ EndpointSecurityConsumer::EndpointSecurityConsumer(
 }
 
 void EndpointSecurityConsumer::endpointSecurityCallback(
-    const void *message_ptr) {
-
-  const auto &message = *static_cast<const es_message_t *>(message_ptr);
+    const es_message_t &message) {
 
   Status status;
   Event event;
-  if (message.event_type == ES_EVENT_TYPE_NOTIFY_EXEC) {
-    status = processExecNotification(event, message_ptr);
-
-  } else if (message.event_type == ES_EVENT_TYPE_NOTIFY_FORK) {
-    status = processForkNotification(event, message_ptr);
+  switch (message.event_type) {
+  case ES_EVENT_TYPE_NOTIFY_EXEC:
+    status = processExecNotification(event, message);
+    break;
+  case ES_EVENT_TYPE_NOTIFY_FORK:
+    status = processForkNotification(event, message);
+    break;
+  case ES_EVENT_TYPE_NOTIFY_OPEN:
+    status = processOpenNotification(event, message);
+    break;
+  case ES_EVENT_TYPE_NOTIFY_CREATE:
+    status = processCreateNotification(event, message);
+    break;
+  default:
+    status = Status::failure("Unhandled event type");
   }
 
   if (!status.succeeded()) {
@@ -146,16 +154,38 @@ void EndpointSecurityConsumer::endpointSecurityCallback(
 
 Status
 EndpointSecurityConsumer::initializeEventHeader(Event::Header &event_header,
-                                                const void *message_ptr) {
-
-  const auto &message = *static_cast<const es_message_t *>(message_ptr);
+                                                const es_message_t &message) {
 
   std::optional<std::reference_wrapper<es_process_t>> process_ref;
+
   if (message.event_type == ES_EVENT_TYPE_NOTIFY_EXEC) {
     process_ref = std::ref(*message.event.exec.target);
 
   } else if (message.event_type == ES_EVENT_TYPE_NOTIFY_FORK) {
     process_ref = std::ref(*message.event.fork.child);
+
+  } else if (message.event_type == ES_EVENT_TYPE_NOTIFY_OPEN) {
+    process_ref = std::ref(*message.process);
+    const auto &file_path = message.event.open.file->path.data;
+    event_header.file_path.assign(file_path);
+
+  } else if (message.event_type == ES_EVENT_TYPE_NOTIFY_CREATE) {
+    process_ref = std::ref(*message.process);
+    if (ES_DESTINATION_TYPE_EXISTING_FILE ==
+        message.event.create.destination_type) {
+      const auto file_path =
+          message.event.create.destination.existing_file->path.data;
+      event_header.file_path.assign(file_path);
+
+    } else if (ES_DESTINATION_TYPE_NEW_PATH ==
+               message.event.create.destination_type) {
+      const auto &new_path = message.event.create.destination.new_path;
+      const auto directory = std::filesystem::path(new_path.dir->path.data);
+      const auto filename = new_path.filename.data;
+      const auto file_path = directory / filename;
+
+      event_header.file_path.assign(file_path);
+    }
 
   } else {
     return Status::failure("Unrecognized event type");
@@ -191,18 +221,17 @@ EndpointSecurityConsumer::initializeEventHeader(Event::Header &event_header,
 
 Status
 EndpointSecurityConsumer::processExecNotification(Event &event,
-                                                  const void *message_ptr) {
+                                                  const es_message_t &message) {
   event = {};
 
   Event new_event;
   new_event.type = Event::Type::Exec;
 
-  auto status = initializeEventHeader(new_event.header, message_ptr);
+  auto status = initializeEventHeader(new_event.header, message);
   if (!status.succeeded()) {
     return status;
   }
 
-  const auto &message = *static_cast<const es_message_t *>(message_ptr);
   Event::ExecEventData exec_data;
 
   auto argument_count = es_exec_arg_count(&message.event.exec);
@@ -223,13 +252,46 @@ EndpointSecurityConsumer::processExecNotification(Event &event,
 
 Status
 EndpointSecurityConsumer::processForkNotification(Event &event,
-                                                  const void *message_ptr) {
+                                                  const es_message_t &message) {
   event = {};
 
   Event new_event;
   new_event.type = Event::Type::Fork;
 
-  auto status = initializeEventHeader(new_event.header, message_ptr);
+  auto status = initializeEventHeader(new_event.header, message);
+  if (!status.succeeded()) {
+    return status;
+  }
+
+  event = std::move(new_event);
+  return Status::success();
+}
+
+Status
+EndpointSecurityConsumer::processOpenNotification(Event &event,
+                                                  const es_message_t &message) {
+  event = {};
+
+  Event new_event;
+  new_event.type = Event::Type::Open;
+
+  auto status = initializeEventHeader(new_event.header, message);
+  if (!status.succeeded()) {
+    return status;
+  }
+
+  event = std::move(new_event);
+  return Status::success();
+}
+
+Status EndpointSecurityConsumer::processCreateNotification(
+    Event &event, const es_message_t &message) {
+  event = {};
+
+  Event new_event;
+  new_event.type = Event::Type::Create;
+
+  auto status = initializeEventHeader(new_event.header, message);
   if (!status.succeeded()) {
     return status;
   }
