@@ -56,6 +56,9 @@ function(zeekAgent)
 
       src/queryscheduler.h
       src/queryscheduler.cpp
+
+      src/utils.h
+      src/utils.cpp
     )
 
     target_link_libraries("${target_name}" PRIVATE

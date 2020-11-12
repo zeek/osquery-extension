@@ -2,6 +2,7 @@
 #include "configuration.h"
 #include "logger.h"
 #include "uniquexxh64state.h"
+#include "utils.h"
 
 #include <unordered_map>
 
@@ -459,6 +460,12 @@ ZeekConnection::ZeekConnection(const std::string &host_identifier)
     joined_group_list.push_back(broker::data(group));
   }
 
+  broker::vector host_ip_addrs;
+
+  for (const auto &ip_addr : getHostIPAddrs()) {
+    host_ip_addrs.push_back(broker::data(ip_addr));
+  }
+
   // clang-format off
   broker::zeek::Event message(
     kBrokerEvent_HOST_NEW,
@@ -469,7 +476,8 @@ ZeekConnection::ZeekConnection(const std::string &host_identifier)
       broker::data(d->host_identifier),
       joined_group_list,
       broker::data(ZEEK_AGENT_VERSION),
-      broker::data(kZeekAgentEdition)
+      broker::data(kZeekAgentEdition),
+      host_ip_addrs
     }
   );
   // clang-format on
@@ -773,11 +781,8 @@ Status ZeekConnection::taskFromZeekEvent(QueryScheduler::Task &task,
   const auto &event_name = event.name();
 
   if (event_name == kHostSubscribeEvent ||
-      event_name == kHostUnsubscribeEvent) {
+      event_name == kHostUnsubscribeEvent || event_name == kHostExecuteEvent) {
 
-    return scheduledTaskFromZeekEvent(task, event);
-
-  } else if (event_name == kHostExecuteEvent) {
     return scheduledTaskFromZeekEvent(task, event);
 
   } else {
