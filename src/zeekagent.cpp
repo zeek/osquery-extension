@@ -14,6 +14,7 @@
 #include <zeek/audispservicefactory.h>
 #elif defined(ZEEK_AGENT_PLATFORM_MACOS)
 #include <zeek/endpointsecurityservicefactory.h>
+#include <zeek/openbsmservicefactory.h>
 #endif
 
 #include <zeek/ihostinformationtableplugin.h>
@@ -249,6 +250,17 @@ ZeekAgent::initializeServiceManager(IZeekServiceManager::Ref &service_manager) {
         IZeekLogger::Severity::Error,
         "The EndpointSecurity tables could not be initialized: " +
             status.message());
+
+    throw status;
+  }
+
+  status = registerOpenbsmServiceFactory(
+      *service_manager.get(), virtual_database, getConfig(), getLogger());
+
+  if (!status.succeeded()) {
+    getLogger().logMessage(IZeekLogger::Severity::Error,
+                           "The Openbsm table could not be initialized: " +
+                               status.message());
 
     throw status;
   }
